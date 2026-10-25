@@ -264,6 +264,7 @@
   "nav.build": "Compilation",
   "nav.content": "Contenu",
   "nav.dashboard": "Tableau de bord",
+  "nav.github": "GitHub",
   "nav.logout": "Se déconnecter",
   "nav.media": "Médias",
   "nav.plugins": "Extensions",

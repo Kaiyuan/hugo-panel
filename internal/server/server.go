@@ -3,7 +3,9 @@ package server
 import (
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,15 +32,16 @@ import (
 const sessionCookie = "hugo_panel_session"
 
 type Server struct {
-	cfg      *config.Config
-	store    *store.Store
-	settings *settings.Manager
-	i18n     *i18n.Manager
-	mailer   *mailer.Mailer
-	hugo     *hugo.Service
-	logger   *slog.Logger
-	version  string
-	started  time.Time
+	cfg          *config.Config
+	store        *store.Store
+	settings     *settings.Manager
+	i18n         *i18n.Manager
+	mailer       *mailer.Mailer
+	hugo         *hugo.Service
+	logger       *slog.Logger
+	version      string
+	assetVersion string
+	started      time.Time
 
 	staticFS fs.FS
 	index    []byte
@@ -54,6 +57,7 @@ type ctxKey int
 const sessionKey ctxKey = 1
 
 func New(cfg *config.Config, st *store.Store, set *settings.Manager, tr *i18n.Manager, ml *mailer.Mailer, hs *hugo.Service, logger *slog.Logger, version string) (*Server, error) {
+	version = normalizeVersion(version)
 	staticFS, err := fs.Sub(web.Files, "static")
 	if err != nil {
 		return nil, err
@@ -70,13 +74,45 @@ func New(cfg *config.Config, st *store.Store, set *settings.Manager, tr *i18n.Ma
 		mailer:    ml,
 		hugo:      hs,
 		logger:    logger,
-		version:   version,
-		started:   time.Now(),
-		staticFS:  staticFS,
-		index:     index,
+		version:      version,
+		assetVersion: computeAssetVersion(version, index, staticFS),
+		started:      time.Now(),
+		staticFS:     staticFS,
+		index:        index,
 		limiter:   newRateLimiter(),
 		dummyHash: "$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW",
 	}, nil
+}
+
+func normalizeVersion(version string) string {
+	version = strings.TrimSpace(version)
+	version = strings.TrimPrefix(version, "v")
+	if version == "" {
+		return "dev"
+	}
+	return version
+}
+
+func computeAssetVersion(version string, index []byte, staticFS fs.FS) string {
+	h := sha256.New()
+	h.Write([]byte("index.html\x00"))
+	h.Write(index)
+	h.Write([]byte{0})
+	_ = fs.WalkDir(staticFS, ".", func(name string, entry fs.DirEntry, err error) error {
+		if err != nil || entry.IsDir() {
+			return nil
+		}
+		data, readErr := fs.ReadFile(staticFS, name)
+		if readErr != nil {
+			return nil
+		}
+		h.Write([]byte(name))
+		h.Write([]byte{0})
+		h.Write(data)
+		h.Write([]byte{0})
+		return nil
+	})
+	return version + "." + hex.EncodeToString(h.Sum(nil))[:12]
 }
 
 func (s *Server) Handler() http.Handler {
@@ -461,7 +497,7 @@ func (s *Server) handleServiceWorker(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not_found", "Service worker not found")
 		return
 	}
-	body := strings.ReplaceAll(string(data), "__PANEL_VERSION__", s.version)
+	body := strings.ReplaceAll(string(data), "__PANEL_VERSION__", s.assetVersion)
 	w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Service-Worker-Allowed", "/")

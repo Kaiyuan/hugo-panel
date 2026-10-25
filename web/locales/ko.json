@@ -264,6 +264,7 @@
   "nav.build": "빌드",
   "nav.content": "콘텐츠",
   "nav.dashboard": "대시보드",
+  "nav.github": "GitHub",
   "nav.logout": "로그아웃",
   "nav.media": "미디어",
   "nav.plugins": "플러그인",

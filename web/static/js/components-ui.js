@@ -361,6 +361,7 @@
     setup() {
       const state = HP.state;
       const route = HP.route;
+      const repoURL = 'https://github.com/Kaiyuan/hugo-panel';
       const confirm = PrimeVue.useConfirm();
       const collapsed = ref(localStorage.getItem('hp_sidebar') === 'collapsed');
       const mobileOpen = ref(false);
@@ -458,7 +459,7 @@
       watch(() => route.path, () => { mobileOpen.value = false; });
       onMounted(() => { document.documentElement.classList.toggle('is-collapsed-pref', collapsed.value); });
       return {
-        state, route, collapsed, mobileOpen, search, userMenu, langMenu, isDark, langLabel,
+        state, route, repoURL, collapsed, mobileOpen, search, userMenu, langMenu, isDark, langLabel,
         navItems, isActive, pageTitle, pageComponent, navigate, toggleCollapsed, submitSearch,
         languageItems, userMenuItems, openUserMenu, openLangMenu, toggleTheme: () => HP.setTheme(isDark.value ? 'light' : 'dark'),
         installApp: HP.installApp, initials: HP.initials, reload: () => location.reload(), t
@@ -485,6 +486,14 @@
             <div class="sidebar-status">
               <span class="status-dot" :class="{ offline: state.offline, busy: false }"></span>
               <span>{{ state.offline ? t('common.offline') : t('common.online') }}</span>
+            </div>
+            <div class="sidebar-meta">
+              <a class="sidebar-link" :href="repoURL" target="_blank" rel="noopener noreferrer" :title="t('nav.github', {}, 'GitHub')">
+                <i class="pi pi-github"></i>
+                <span>{{ t('nav.github', {}, 'GitHub') }}</span>
+                <i class="pi pi-external-link sidebar-link-external"></i>
+              </a>
+              <span class="sidebar-version" :title="'v' + state.version">v{{ state.version }}</span>
             </div>
             <button class="user-card" @click="openUserMenu($event)">
               <span class="avatar">{{ initials(state.user.username) }}</span>

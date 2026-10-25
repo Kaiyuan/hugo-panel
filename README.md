@@ -147,7 +147,7 @@ ${DATA_DIR}/locales/de.json
 
 也可以在 **设置 → 语言 → 添加翻译** 中上传 JSON 文件。缺失的键会自动回退到英文；新增语言无需重新编译或重启。
 
-## 发布
+<!-- ## 发布
 
 推送形如 `v1.2.3` 的 tag 会触发 [`.github/workflows/release.yml`](./.github/workflows/release.yml)，构建 `linux/amd64` 与 `linux/arm64` 镜像并推送到 Docker Hub：
 
@@ -160,7 +160,7 @@ ${DATA_DIR}/locales/de.json
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 
-CI（`ci.yml`）会在 push/PR 时运行 `go vet`、`go test -race` 和 amd64 Docker 构建。
+CI（`ci.yml`）会在 push/PR 时运行 `go vet`、`go test -race` 和 amd64 Docker 构建。 -->
 
 ## 架构
 

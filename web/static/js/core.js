@@ -312,7 +312,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then((reg) => {
+      navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then((reg) => {
         reg.addEventListener('updatefound', () => {
           const worker = reg.installing;
           if (!worker) return;

@@ -1,4 +1,4 @@
-/* Hugo Panel service worker. The server replaces the version placeholder below. */
+/* Hugo Panel service worker. The server replaces __PANEL_VERSION__ with the panel version and asset fingerprint. */
 const VERSION = '__PANEL_VERSION__';
 const CACHE = 'hugo-panel-' + VERSION;
 const I18N_CACHE = 'hugo-panel-i18n-' + VERSION;
@@ -31,10 +31,21 @@ const PRECACHE = [
   '/static/icons/apple-touch-icon.png'
 ];
 
+async function precache() {
+  const cache = await caches.open(CACHE);
+  await Promise.all(PRECACHE.map(async (url) => {
+    const response = await fetch(new Request(url, { cache: 'reload' }));
+    if (!response || !response.ok) throw new Error('Failed to precache ' + url);
+    await cache.put(url, response);
+  }));
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
-  );
+  event.waitUntil(precache().then(() => self.skipWaiting()));
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

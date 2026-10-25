@@ -4,7 +4,7 @@ services:
     container_name: hugo-panel
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "55530:8080"
     environment:
       TZ: Asia/Shanghai
       HUGO_DIR: /app/hugo
