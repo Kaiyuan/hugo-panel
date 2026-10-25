@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f6f7f9">
+  <meta name="description" content="Hugo Panel — a calm, self-hosted administration panel for Hugo sites.">
+  <meta name="application-name" content="Hugo Panel">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Hugo Panel">
+  <title>Hugo Panel</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="/static/vendor/primeicons.css">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/js/boot.js"></script>
+  <script defer src="/static/vendor/vue.global.prod.js"></script>
+  <script defer src="/static/vendor/primevue.umd.min.js"></script>
+  <script defer src="/static/vendor/primevue-themes-aura.umd.min.js"></script>
+  <script defer src="/static/vendor/marked.umd.js"></script>
+  <script defer src="/static/vendor/dompurify.min.js"></script>
+  <script defer src="/static/js/core.js"></script>
+  <script defer src="/static/js/components-ui.js"></script>
+  <script defer src="/static/js/pages-dashboard.js"></script>
+  <script defer src="/static/js/pages-content.js"></script>
+  <script defer src="/static/js/pages-media-themes.js"></script>
+  <script defer src="/static/js/pages-plugins-build.js"></script>
+  <script defer src="/static/js/pages-settings.js"></script>
+  <script defer src="/static/js/app.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div class="boot-screen">
+      <div class="boot-card">
+        <span class="brand-mark"><i class="pi pi-th-large"></i></span>
+        <h1>Hugo Panel</h1>
+        <p>Loading workspace…</p>
+        <div class="boot-loading"><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </div>
+  <noscript>
+    <div class="noscript">Hugo Panel needs JavaScript enabled to manage your site.</div>
+  </noscript>
+</body>
+</html>

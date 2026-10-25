@@ -1,0 +1,29 @@
+services:
+  hugo-panel:
+    image: kaiyuan/hugo-panel:latest
+    container_name: hugo-panel
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      TZ: Asia/Shanghai
+      HUGO_DIR: /app/hugo
+      # Public URL of this panel, used for password-reset links.
+      PUBLIC_URL: http://localhost:8080
+      # Set to "true" when running behind an HTTPS reverse proxy.
+      # COOKIE_SECURE: "auto"
+      # SMTP (alternatively configure it in Settings after first boot)
+      # SMTP_ENABLED: "true"
+      # SMTP_HOST: smtp.example.com
+      # SMTP_PORT: "587"
+      # SMTP_USERNAME: user@example.com
+      # SMTP_PASSWORD: change-me
+      # SMTP_FROM: panel@example.com
+      # SMTP_FROM_NAME: Hugo Panel
+      # SMTP_SECURITY: starttls
+      # The app chowns mounted Hugo files to UID 1000. Disable if you manage
+      # permissions yourself.
+      # CHOWN_HUGO: "true"
+    volumes:
+      - ./data:/app/hugo-panel/data
+      - ./hugo:/app/hugo

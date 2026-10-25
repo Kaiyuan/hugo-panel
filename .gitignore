@@ -1,0 +1,10 @@
+/bin/
+/data/
+/hugo/
+*.db
+*.db-shm
+*.db-wal
+.env
+.DS_Store
+tmp/
+compose.yml

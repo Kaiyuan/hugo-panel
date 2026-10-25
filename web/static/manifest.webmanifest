@@ -1,0 +1,25 @@
+{
+  "id": "/",
+  "name": "Hugo Panel",
+  "short_name": "Hugo Panel",
+  "description": "A calm, self-hosted administration panel for Hugo sites.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f6f7f9",
+  "theme_color": "#111318",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["productivity", "developer", "utilities"],
+  "icons": [
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Dashboard", "short_name": "Dashboard", "url": "/#/dashboard", "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Content", "short_name": "Content", "url": "/#/content", "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}
