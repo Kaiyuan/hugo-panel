@@ -66,6 +66,24 @@ body {
      the sticky navigation. `hidden` stays as the fallback. */
   overflow-x: hidden;
   overflow-x: clip;
+  transition: opacity .18s ease;
+}
+
+/* While another language's dictionary is loading, keep the Chinese markup out
+   of sight so visitors never see a flash of the wrong language. */
+html.i18n-pending body { opacity: 0; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 img { max-width: 100%; height: auto; }
@@ -182,6 +200,30 @@ pre code {
 .nav-links a:hover { color: var(--ink); border-bottom-color: var(--border-strong); }
 
 .nav-actions { display: flex; align-items: center; gap: 10px; }
+
+.lang-wrap { display: inline-flex; }
+.lang-select {
+  height: 38px;
+  max-width: 124px;
+  padding: 0 26px 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background-color: var(--panel);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition: border-color .15s ease, color .15s ease;
+}
+.lang-select:hover { color: var(--ink); border-color: var(--border-strong); }
+.lang-select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.lang-select option { color: var(--ink); background: var(--panel); }
 
 .icon-btn {
   width: 38px;
@@ -584,17 +626,25 @@ pre code {
   .nav-links { display: none; }
   .code-grid { grid-template-columns: 1fr; }
   .browser-bar .url { max-width: none; }
+  /* Keep form controls at 16px on phones: iOS zooms the page otherwise. */
+  .lang-select { font-size: 16px; max-width: 116px; }
 }
 
 @media (max-width: 620px) {
   .feature-grid { grid-template-columns: 1fr; }
   .section { padding-block: 56px; }
+  .nav-actions { gap: 6px; }
   .nav-actions .btn-sm span { display: none; }
+  .lang-select { max-width: 108px; padding-left: 8px; }
   .figure-note { font-size: 12.5px; }
 }
 
 @media (max-width: 420px) {
   .brand-text small { display: none; }
+  .brand-mark { width: 34px; height: 34px; border-radius: 10px; }
+  .brand-text strong { font-size: 15px; }
+  .nav-actions { gap: 4px; }
+  .lang-select { max-width: 100px; }
   .cta-row .btn { flex: 1 1 auto; }
 }
 
