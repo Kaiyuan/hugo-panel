@@ -171,7 +171,7 @@ ${DATA_DIR}/locales/de.json
 
 <!-- ## 发布
 
-推送形如 `v1.2.3` 的 tag 会触发 [`.github/workflows/release.yml`](./.github/workflows/release.yml)，构建 `linux/amd64` 与 `linux/arm64` 镜像并推送到 Docker Hub：
+推送形如 `v1.2.3` 的 tag（或在 GitHub 上发布 Release，它会创建对应的 tag）会触发 [`.github/workflows/release.yml`](./.github/workflows/release.yml)，构建 `linux/amd64` 与 `linux/arm64` 镜像并推送到 Docker Hub：
 
 - `kaiyuan/hugo-panel:1.2.3`
 - `kaiyuan/hugo-panel:1.2`
@@ -182,7 +182,7 @@ ${DATA_DIR}/locales/de.json
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 
-CI（`ci.yml`）会在 push/PR 时运行 `go vet`、`go test -race` 和 amd64 Docker 构建。 -->
+CI（`ci.yml`）只在 push/PR 时运行 `go vet`、`go test -race` 和二进制构建，不构建任何 Docker 镜像；镜像只由 tag 触发。 -->
 
 ## 架构
 
