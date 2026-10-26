@@ -367,8 +367,10 @@
                     <div><dt>{{ t('themes.config_format', {}, 'Format') }}</dt><dd>{{ (cfg.format || 'toml').toUpperCase() }}</dd></div>
                     <div><dt>{{ t('themes.config_path', {}, 'File') }}</dt><dd class="break-all">{{ cfg.config_path }}</dd></div>
                   </dl>
-                  <PButton class="w-full btn-primary" :label="t('common.save_changes', {}, 'Save changes')" icon="pi pi-check" :loading="saving" @click="save" />
-                  <PButton class="w-full" outlined :label="t('themes.init_site', {}, 'Initialize site')" icon="pi pi-server" @click="openInit" />
+                  <div class="action-stack">
+                    <PButton class="w-full btn-primary" :label="t('common.save_changes', {}, 'Save changes')" icon="pi pi-check" :loading="saving" @click="save" />
+                    <PButton class="w-full" outlined :label="t('themes.init_site', {}, 'Initialize site')" icon="pi pi-server" @click="openInit" />
+                  </div>
                 </template>
               </PCard>
             </aside>

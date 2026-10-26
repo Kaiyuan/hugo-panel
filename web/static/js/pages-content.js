@@ -547,7 +547,10 @@
                     </PTabList>
                     <PTabPanels>
                       <PTabPanel value="edit">
-                        <PTextarea v-model="body" class="markdown-editor" autoResize :placeholder="t('content.body_placeholder', {}, 'Write in Markdown. Front matter is handled for you.')" />
+                        <div class="editor-split">
+                          <PTextarea v-model="body" class="markdown-editor" autoResize :placeholder="t('content.body_placeholder', {}, 'Write in Markdown. Front matter is handled for you.')" />
+                          <div class="markdown-body preview-pane live-preview" v-html="preview"></div>
+                        </div>
                       </PTabPanel>
                       <PTabPanel value="preview">
                         <div class="markdown-body preview-pane" v-html="preview"></div>
@@ -596,8 +599,10 @@
                     <div><span>{{ t('content.words', {}, 'Words') }}</span><strong>{{ wordCount }}</strong></div>
                     <div><span>{{ t('content.path', {}, 'Path') }}</span><strong class="break-all">{{ form.path }}</strong></div>
                   </div>
-                  <PButton class="w-full btn-primary" :label="t('content.save', {}, 'Save content')" icon="pi pi-check" :loading="saving" @click="save" />
-                  <PButton class="w-full" text :label="t('content.unsaved_back', {}, 'Back to content')" @click="back" />
+                  <div class="action-stack">
+                    <PButton class="w-full btn-primary" :label="t('content.save', {}, 'Save content')" icon="pi pi-check" :loading="saving" @click="save" />
+                    <PButton class="w-full" text :label="t('content.unsaved_back', {}, 'Back to content')" @click="back" />
+                  </div>
                 </template>
               </PCard>
             </aside>
