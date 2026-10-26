@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hugo Panel — 自托管的 Hugo 站点管理后台</title>
+  <meta name="description" content="Hugo Panel 是一个用 Go 编写的 Hugo 站点管理后台。内容、主题、插件、媒体和构建都在同一个界面里完成，一个二进制文件 + 一个 SQLite 文件，无需 Node.js。">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f4f5f7">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Hugo Panel">
+  <meta property="og:title" content="Hugo Panel — 自托管的 Hugo 站点管理后台">
+  <meta property="og:description" content="内容、主题、插件、媒体和构建，收进一个安静的后台。Go + SQLite + PrimeVue，无需 Node.js。">
+  <meta property="og:url" content="https://kaiyuan.github.io/hugo-panel/">
+  <meta property="og:image" content="https://kaiyuan.github.io/hugo-panel/assets/images/hugo-panel-desktop.jpeg">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="stylesheet" href="assets/site.css">
+
+  <script>
+    // Pick the theme before first paint so the page never flashes.
+    (function () {
+      try {
+        var saved = localStorage.getItem('hp-docs-theme');
+        var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="./" aria-label="Hugo Panel 首页">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="22" height="22" role="img" aria-hidden="true">
+            <rect x="16" y="16" width="14" height="14" rx="4" fill="currentColor"/>
+            <rect x="34" y="16" width="14" height="14" rx="4" fill="currentColor"/>
+            <rect x="16" y="34" width="14" height="14" rx="4" fill="currentColor"/>
+            <rect x="34" y="34" width="14" height="14" rx="4" fill="currentColor"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong>Hugo Panel</strong>
+          <small>自托管 Hugo 后台</small>
+        </span>
+      </a>
+
+      <nav class="nav-links" aria-label="主导航">
+        <a href="#features">功能</a>
+        <a href="#showcase">界面</a>
+        <a href="#start">部署</a>
+      </nav>
+
+      <div class="nav-actions">
+        <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换亮色 / 暗色主题">
+          <svg class="i-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/>
+          </svg>
+          <svg class="i-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 13.4A8.2 8.2 0 0 1 10.6 4a8.4 8.4 0 1 0 9.4 9.4Z"/>
+          </svg>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="https://github.com/Kaiyuan/hugo-panel" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true">
+            <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.36 1.09 2.94.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.85-2.34 4.7-4.57 4.95.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2Z"/>
+          </svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="dot" aria-hidden="true"></span>自托管 · Go + SQLite · 无需 Node.js</p>
+          <h1>Hugo 的日常运维，<br>收进一个安静的后台。</h1>
+          <p class="lead">
+            内容、主题、插件、媒体和构建，都在同一个界面里完成。
+            一个二进制文件，一个 SQLite 文件，不需要手写配置文件，也不需要打开终端。
+          </p>
+
+          <div class="cta-row">
+            <a class="btn btn-primary" href="#start">
+              开始部署
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+            </a>
+            <a class="btn btn-ghost" href="https://hub.docker.com/r/kaiyuan/hugo-panel" target="_blank" rel="noopener">
+              Docker Hub
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h8M8 6v12h8V6"/><path d="M11 10h4"/></svg>
+            </a>
+          </div>
+
+          <ul class="badges" aria-label="技术栈">
+            <li>Go 1.24</li>
+            <li>SQLite</li>
+            <li>PrimeVue 4</li>
+            <li>PWA</li>
+          </ul>
+        </div>
+
+        <div class="hero-visual">
+          <div class="phone">
+            <img src="assets/images/hugo-panel-phone.png" width="1320" height="2868" decoding="async" alt="Hugo Panel 在 iPhone 上的仪表盘界面：顶部是菜单、语言与主题按钮，下方为内容统计卡片和发布节奏图表。">
+          </div>
+          <div class="phone-caption">
+            <span class="caption-title">可安装的 PWA</span>
+            <span>离线应用壳 · 移动端适配 · 加到主屏幕</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section showcase" id="showcase">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">界面</p>
+          <h2>一屏看清站点正在发生什么</h2>
+          <p class="section-lead">内容总量、发布节奏、主题状态和最近编辑，打开后台的第一眼就能读到。</p>
+        </header>
+
+        <figure class="browser">
+          <div class="browser-bar" aria-hidden="true">
+            <span class="traffic"><i></i><i></i><i></i></span>
+            <span class="url">panel.example.com</span>
+            <span class="browser-spacer"></span>
+          </div>
+          <img src="assets/images/hugo-panel-desktop.jpeg" width="1323" height="863" decoding="async" alt="Hugo Panel 桌面端仪表盘：左侧导航，顶部搜索与语言切换，主体为内容统计卡片、发布节奏图表和站点概览。">
+        </figure>
+        <p class="figure-note">桌面端仪表盘 · 亮色主题</p>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">功能</p>
+          <h2>该在界面上做的事，都不用回到命令行</h2>
+          <p class="section-lead">面向日常写作与运维，而不是配置文件的速查表。</p>
+        </header>
+
+        <div class="feature-grid">
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+            </span>
+            <h3>内容管理</h3>
+            <p>Markdown 页面与文章的新建、重命名、搜索、筛选和分页；front matter 支持 YAML / TOML / JSON，右侧实时预览。</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.9 1.8-1.8 0-1.5-1.2-1.9-1.2-3.1 0-1 .8-1.8 1.9-1.8H16a5 5 0 0 0 5-5C21 5.6 17 3 12 3Z"/><circle cx="7.5" cy="10.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="10.5" cy="6.8" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="7.2" r="1.2" fill="currentColor" stroke="none"/></svg>
+            </span>
+            <h3>主题管理</h3>
+            <p>列出 <code>themes/</code> 下的主题并一键启用，也可以从 Git 安装、更新或移除；站点参数和菜单可视化编辑。</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 7v10l8 4 8-4V7Z"/><path d="M4 7l8 4 8-4M12 11v10"/></svg>
+            </span>
+            <h3>插件与模块</h3>
+            <p>以 Hugo Modules 安装、移除插件，执行 <code>hugo mod tidy</code>，命令输出和工具链状态直接回显。</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m4 17 4.5-4.5 4 3.5 3-2.5L20 17"/></svg>
+            </span>
+            <h3>媒体库</h3>
+            <p>上传、预览、删除图片，一键复制 URL 或 Markdown 链接。支持 JPG、PNG、GIF、WebP、AVIF、ICO，单文件 20 MB。</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m7 8-4 4 4 4M17 8l4 4-4 4M14 5l-4 14"/></svg>
+            </span>
+            <h3>构建</h3>
+            <p>在面板里运行 <code>hugo --gc --minify --cleanDestinationDir</code>，保留最后一次结果，失败时可以邮件通知。</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 3.8 5.6 3.8 9S14.5 18.6 12 21c-2.5-2.4-3.8-5.6-3.8-9S9.5 5.4 12 3Z"/></svg>
+            </span>
+            <h3>多语言</h3>
+            <p>内置简体中文、繁体中文、英语、法语、意大利语、西班牙语、日语、韩语。每种语言独立文件，按需加载，也能上传自己的译文。</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13.4A8.2 8.2 0 0 1 10.6 4a8.4 8.4 0 1 0 9.4 9.4Z"/></svg>
+            </span>
+            <h3>亮色与纯黑</h3>
+            <p>默认跟随系统。暗色主题使用纯黑 <code>#000</code> 背景，OLED 屏幕下像素不发光，也更省电。</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5.5c0 4.4 2.9 8.2 7 9.5 4.1-1.3 7-5.1 7-9.5V6Z"/><path d="m9 12 2.2 2.2L15.5 10"/></svg>
+            </span>
+            <h3>安全</h3>
+            <p>HttpOnly 会话、CSRF 防护、登录与找回密码限流、同源校验、CSP 和路径穿越防护；配置修改前自动备份。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section start" id="start">
+      <div class="wrap">
+        <header class="section-head">
+          <p class="eyebrow">部署</p>
+          <h2>一条命令开始</h2>
+          <p class="section-lead">镜像同时提供 linux/amd64 与 linux/arm64。首次打开会进入创建管理员的向导。</p>
+        </header>
+
+        <div class="code-grid">
+          <div class="code-card">
+            <div class="code-head">
+              <span>docker run</span>
+              <button class="copy-btn" type="button" data-copy="snippet-run">复制</button>
+            </div>
+<pre id="snippet-run"><code>docker run -d \
+  --name hugo-panel \
+  --restart unless-stopped \
+  -p 8080:8080 \
+  -v /srv/hugo-panel/data:/app/hugo-panel/data \
+  -v /srv/my-hugo-site:/app/hugo \
+  -e PUBLIC_URL=https://panel.example.com \
+  -e TZ=Asia/Shanghai \
+  kaiyuan/hugo-panel:latest</code></pre>
+          </div>
+
+          <div class="code-card">
+            <div class="code-head">
+              <span>docker compose</span>
+              <button class="copy-btn" type="button" data-copy="snippet-compose">复制</button>
+            </div>
+<pre id="snippet-compose"><code>services:
+  hugo-panel:
+    image: kaiyuan/hugo-panel:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PUBLIC_URL: https://panel.example.com
+    volumes:
+      - ./data:/app/hugo-panel/data
+      - ./hugo:/app/hugo</code></pre>
+          </div>
+        </div>
+
+        <div class="notes">
+          <div class="note">
+            <strong>两个挂载目录</strong>
+            <p><code>/app/hugo-panel/data</code> 放 SQLite 数据库、备份和自定义翻译；<code>/app/hugo</code> 是你的 Hugo 站点目录。</p>
+          </div>
+          <div class="note">
+            <strong>需要 HTTPS</strong>
+            <p>除 <code>localhost</code> 外，安装 PWA 和 Service Worker 都要求 HTTPS，建议放在反向代理之后并设置 <code>PUBLIC_URL</code>。</p>
+          </div>
+          <div class="note">
+            <strong>容器权限</strong>
+            <p>默认以 UID/GID <code>1000</code> 运行，启动时会把挂载目录 chown 给该用户；由外部工具管理权限时可关闭。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section closing">
+      <div class="wrap">
+        <div class="closing-inner">
+          <div>
+            <h2>跑起来，然后忘掉配置文件。</h2>
+            <p>源码、文档和问题反馈都在 GitHub。项目以 MIT 许可证开源。</p>
+          </div>
+          <div class="cta-row">
+            <a class="btn btn-primary" href="https://github.com/Kaiyuan/hugo-panel" target="_blank" rel="noopener">
+              查看仓库
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+            </a>
+            <a class="btn btn-ghost" href="https://hub.docker.com/r/kaiyuan/hugo-panel" target="_blank" rel="noopener">Docker Hub</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div class="footer-brand">
+        <span class="brand-mark small" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="16" height="16" aria-hidden="true">
+            <rect x="16" y="16" width="14" height="14" rx="4" fill="currentColor"/>
+            <rect x="34" y="16" width="14" height="14" rx="4" fill="currentColor"/>
+            <rect x="16" y="34" width="14" height="14" rx="4" fill="currentColor"/>
+            <rect x="34" y="34" width="14" height="14" rx="4" fill="currentColor"/>
+          </svg>
+        </span>
+        <span>Hugo Panel · MIT License</span>
+      </div>
+      <nav class="footer-links" aria-label="页脚链接">
+        <a href="https://github.com/Kaiyuan/hugo-panel" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/Kaiyuan/hugo-panel/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
+        <a href="https://hub.docker.com/r/kaiyuan/hugo-panel" target="_blank" rel="noopener">Docker Hub</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="assets/site.js"></script>
+</body>
+</html>

@@ -7,6 +7,14 @@
 ![PrimeVue](https://img.shields.io/badge/PrimeVue-4-10b981)
 ![Docker](https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED?logo=docker&logoColor=white)
 
+## 预览
+
+| 桌面端 | 移动端 |
+| --- | --- |
+| ![Hugo Panel 桌面端仪表盘](./docs/assets/images/hugo-panel-desktop.jpeg) | <img src="./docs/assets/images/hugo-panel-phone.png" width="260" alt="Hugo Panel 移动端仪表盘"> |
+
+介绍页（纯静态，由 GitHub Pages 托管）：<https://kaiyuan.github.io/hugo-panel/>
+
 ## 功能
 
 - **首次启动向导**：创建管理员账户，密码使用 bcrypt 存储。
