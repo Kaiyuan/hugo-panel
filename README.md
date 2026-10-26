@@ -41,12 +41,13 @@ docker run -d \
 
 ### Docker Compose
 
-仓库内的 [`docker-compose.yml`](./docker-compose.yml)：
+仓库内的 [`docker-compose.yml`](./docker-compose.yml) 使用本地源码构建镜像，不依赖远程镜像：
 
 ```yaml
 services:
   hugo-panel:
-    image: kaiyuan/hugo-panel:latest
+    build: .
+    image: hugo-panel:local
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -54,9 +55,22 @@ services:
       HUGO_DIR: /app/hugo
       PUBLIC_URL: https://panel.example.com
     volumes:
-      - ./data:/app/hugo-panel/data
-      - ./hugo:/app/hugo
+      - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
+      - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
 ```
+
+挂载目录通过 `.env` 配置，未设置时使用默认相对路径：
+
+```dotenv
+HOST_DATA_DIR=./data
+HOST_HUGO_DIR=./hugo
+```
+
+```bash
+docker compose up -d --build
+```
+
+SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首次启动后到设置页配置。
 
 ### 目录约定
 

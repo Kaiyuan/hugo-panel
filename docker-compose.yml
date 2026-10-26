@@ -1,6 +1,17 @@
 services:
   hugo-panel:
-    image: kaiyuan/hugo-panel:latest
+    # Build the image locally from this repository instead of pulling a remote image.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Go module proxy used while building the image.
+        # GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
+        # VERSION: ${VERSION:-0.0.1}
+        COMMIT: ${COMMIT:-none}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+    # Local tag for the image built above. Nothing is pulled from a registry.
+    image: hugo-panel:local
     container_name: hugo-panel
     restart: unless-stopped
     ports:
@@ -12,18 +23,12 @@ services:
       PUBLIC_URL: http://localhost:8080
       # Set to "true" when running behind an HTTPS reverse proxy.
       # COOKIE_SECURE: "auto"
-      # SMTP (alternatively configure it in Settings after first boot)
-      # SMTP_ENABLED: "true"
-      # SMTP_HOST: smtp.example.com
-      # SMTP_PORT: "587"
-      # SMTP_USERNAME: user@example.com
-      # SMTP_PASSWORD: change-me
-      # SMTP_FROM: panel@example.com
-      # SMTP_FROM_NAME: Hugo Panel
-      # SMTP_SECURITY: starttls
       # The app chowns mounted Hugo files to UID 1000. Disable if you manage
       # permissions yourself.
       # CHOWN_HUGO: "true"
+      # SMTP is optional and does not affect the build. Configure it in
+      # Settings after first boot, or add SMTP_* variables here if needed.
     volumes:
-      - ./data:/app/hugo-panel/data
-      - ./hugo:/app/hugo
+      # Host paths are configured in .env (defaults keep them next to this file).
+      - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
+      - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
