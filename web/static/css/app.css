@@ -927,6 +927,8 @@ html body .p-password-input {
   padding: 0 2.4rem 0 .78rem !important;
 }
 html body .p-select {
+  display: flex !important;
+  align-items: center !important;
   height: var(--control-height) !important;
   padding: 0 .78rem !important;
 }
