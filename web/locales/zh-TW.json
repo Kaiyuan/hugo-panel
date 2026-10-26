@@ -144,6 +144,7 @@
   "content.invalid_json": "「{key}」包含無效的 JSON。",
   "content.invalid_number": "“{key}”必須是數字。",
   "content.library": "內容庫",
+  "content.live_edit_hint": "點擊任意區塊編輯 Markdown，點擊其他位置即可查看渲染效果。",
   "content.markdown_supported": "支持降價",
   "content.new": "新增內容",
   "content.no_extra_fields": "沒有額外的 front matter 欄位。",

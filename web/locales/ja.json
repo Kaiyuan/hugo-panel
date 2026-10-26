@@ -144,6 +144,7 @@
   "content.invalid_json": "「{key}」には無効な JSON が含まれています。",
   "content.invalid_number": "「{key}」は数字でなければなりません。",
   "content.library": "ライブラリ",
+  "content.live_edit_hint": "ブロックをクリックすると Markdown を編集でき、外側をクリックするとレンダリング結果が表示されます。",
   "content.markdown_supported": "マークダウンのサポート",
   "content.new": "新規コンテンツ",
   "content.no_extra_fields": "余分な前付フィールドはありません。",

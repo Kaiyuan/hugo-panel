@@ -254,12 +254,13 @@
         const m = form.path.match(/\.(md|markdown|mdown)$/i);
         return m ? m[1].toLowerCase() : '';
       });
-      const wordCount = computed(() => {
-        const text = body.value || '';
-        const latin = (text.match(/[A-Za-z0-9_'-]+/g) || []).length;
-        const cjk = (text.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g) || []).length;
+      function countWords(text) {
+        const value = text || '';
+        const latin = (value.match(/[A-Za-z0-9_'-]+/g) || []).length;
+        const cjk = (value.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g) || []).length;
         return latin + cjk;
-      });
+      }
+      const wordCount = computed(() => countWords(body.value));
       function escapeHtml(s) {
         return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       }
@@ -267,13 +268,124 @@
         return String(html).replace(/(src)=("|')\/images\/([^"']+)\2/g, (m, attr, quote, path) =>
           attr + '=' + quote + '/api/media/file?path=' + encodeURIComponent(path) + quote);
       }
+      function renderMarkdown(src) {
+        const text = String(src || '');
+        if (!text) return '';
+        try {
+          if (!window.marked || !window.DOMPurify) return '<pre>' + escapeHtml(text) + '</pre>';
+          const html = window.marked.parse(text, { gfm: true, breaks: true });
+          return rewriteMediaLinks(window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } }));
+        } catch (e) { return '<pre>' + escapeHtml(text) + '</pre>'; }
+      }
       const preview = computed(() => {
         if (!body.value) return '<p class="preview-empty">' + t('content.preview_empty', {}, 'Nothing to preview yet.') + '</p>';
+        return renderMarkdown(body.value);
+      });
+
+      // Block-level live editor: rendered blocks, raw markdown only while the block is focused.
+      const editingBlock = ref(-1);
+      const blockDraft = ref('');
+      let editStart = 0;
+      let editEnd = 0;
+      let editSource = '';
+      let blockSeq = 0;
+
+      function splitMarkdownBlocks(src) {
+        const text = String(src || '');
+        if (!text.trim()) return [];
+        let tokens;
         try {
-          if (!window.marked || !window.DOMPurify) return '<pre>' + escapeHtml(body.value) + '</pre>';
-          const html = window.marked.parse(body.value, { gfm: true, breaks: true });
-          return rewriteMediaLinks(window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } }));
-        } catch (e) { return '<pre>' + escapeHtml(body.value) + '</pre>'; }
+          tokens = window.marked && window.marked.lexer
+            ? window.marked.lexer(text)
+            : [{ type: 'paragraph', raw: text }];
+        } catch (e) {
+          tokens = [{ type: 'paragraph', raw: text }];
+        }
+        const blocks = [];
+        let offset = 0;
+        for (const token of tokens) {
+          const raw = token.raw || '';
+          const start = offset;
+          offset += raw.length;
+          if (token.type === 'space') continue;
+          const source = raw.replace(/[\r\n]+$/, '');
+          if (!source.trim()) continue;
+          const html = renderMarkdown(source);
+          blocks.push({
+            key: 'block-' + blockSeq++,
+            source,
+            start,
+            end: start + source.length,
+            html: html || '<pre class="live-block-raw">' + escapeHtml(source) + '</pre>'
+          });
+        }
+        return blocks;
+      }
+      const liveBlocks = computed(() => splitMarkdownBlocks(body.value));
+
+      function autoGrowLiveEditor(el) {
+        if (!el) return;
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      }
+      function focusLiveEditor() {
+        nextTick(() => {
+          const el = document.querySelector('[data-live-editor]');
+          if (!el) return;
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length);
+          autoGrowLiveEditor(el);
+        });
+      }
+      function onBlockInput(event) {
+        autoGrowLiveEditor(event.target);
+        if (!settingUp.value && !loading.value) dirty.value = true;
+      }
+      function beginBlockEdit(index) {
+        if (editingBlock.value === index) return;
+        const previous = liveBlocks.value.length ? liveBlocks.value[index] : null;
+        const previousStart = previous ? previous.start : null;
+        const shiftedFrom = editingBlock.value !== -1 ? editStart : null;
+        const delta = editingBlock.value !== -1 ? blockDraft.value.length - editSource.length : 0;
+        if (editingBlock.value !== -1) commitBlockEdit();
+        let block;
+        if (!liveBlocks.value.length) {
+          block = { source: body.value, start: 0, end: body.value.length };
+        } else if (previousStart !== null && shiftedFrom !== null && previousStart > shiftedFrom) {
+          const targetStart = previousStart + delta;
+          block = liveBlocks.value.find((b) => b.start === targetStart) || liveBlocks.value[Math.min(index, liveBlocks.value.length - 1)];
+        } else {
+          block = liveBlocks.value[index];
+        }
+        if (!block) return;
+        const newIndex = liveBlocks.value.indexOf(block);
+        editStart = block.start;
+        editEnd = block.end;
+        editSource = block.source;
+        editingBlock.value = newIndex >= 0 ? newIndex : index;
+        blockDraft.value = block.source;
+        focusLiveEditor();
+      }
+      function onBlockMouseDown(index, event) {
+        if (editingBlock.value === index) return;
+        if (event.target.closest('a, button, input, textarea, select')) return;
+        event.preventDefault();
+        beginBlockEdit(index);
+      }
+      function commitBlockEdit() {
+        const index = editingBlock.value;
+        if (index === -1) return;
+        editingBlock.value = -1;
+        if (blockDraft.value !== editSource) {
+          body.value = body.value.slice(0, editStart) + blockDraft.value + body.value.slice(editEnd);
+        }
+      }
+      function onBlockBlur(index) {
+        if (editingBlock.value === index) commitBlockEdit();
+      }
+      const liveWordCount = computed(() => {
+        if (editingBlock.value === -1) return wordCount.value;
+        return countWords(body.value.slice(0, editStart) + blockDraft.value + body.value.slice(editEnd));
       });
       const metaStatus = computed(() => {
         if (form.draft) return 'draft';
@@ -320,7 +432,7 @@
         form.categories = (item.categories || []).join(', ');
         form.description = item.description || '';
         form.weight = item.weight || 0;
-        body.value = item.body || '';
+        body.value = (item.body || '').replace(/\r\n?/g, '\n');
         format.value = item.format || 'yaml';
         extras.value = extraRows(item.front_matter || {});
         pathTouched.value = true;
@@ -389,6 +501,7 @@
       }
       async function save() {
         error.value = '';
+        commitBlockEdit();
         if (!form.title.trim()) { error.value = t('content.title_required', {}, 'Add a title before saving'); return; }
         if (!form.path.trim() || !pathExt.value) { error.value = t('content.path_invalid', {}, 'Path must end in .md, .markdown or .mdown'); return; }
         saving.value = true;
@@ -464,7 +577,8 @@
 
       return {
         isNew, loading, saving, deleting, error, loadError, dirty, activeTab, form, body, format, extras,
-        formatOptions, typeOptions, wordCount, preview, metaStatus, pathExt, load, save, back,
+        formatOptions, typeOptions, wordCount: liveWordCount, preview, metaStatus, pathExt, load, save, back,
+        liveBlocks, editingBlock, blockDraft, beginBlockEdit, onBlockMouseDown, commitBlockEdit, onBlockBlur, onBlockInput,
         remove, addExtra, removeExtra, onPathInput, confirmLeave, go: HP.navigate,
         formatDate: HP.formatDate, t
       };
@@ -543,21 +657,33 @@
                   <PTabs v-model:value="activeTab">
                     <PTabList>
                       <PTab value="edit"><i class="pi pi-pencil"></i> {{ t('content.editor', {}, 'Editor') }}</PTab>
+                      <PTab value="source"><i class="pi pi-code"></i> Markdown</PTab>
                       <PTab value="preview"><i class="pi pi-eye"></i> {{ t('content.preview', {}, 'Preview') }}</PTab>
                     </PTabList>
                     <PTabPanels>
                       <PTabPanel value="edit">
-                        <div class="editor-split">
-                          <PTextarea v-model="body" class="markdown-editor" autoResize :placeholder="t('content.body_placeholder', {}, 'Write in Markdown. Front matter is handled for you.')" />
-                          <div class="markdown-body preview-pane live-preview" v-html="preview"></div>
+                        <div class="markdown-live">
+                          <div v-if="!liveBlocks.length && editingBlock === -1" class="live-block live-placeholder" @mousedown.prevent="beginBlockEdit(0)">
+                            {{ t('content.body_placeholder', {}, 'Write in Markdown. Front matter is handled for you.') }}
+                          </div>
+                          <div v-for="(block, index) in liveBlocks" :key="block.key" class="live-block" :class="{ 'is-editing': editingBlock === index }" @mousedown="onBlockMouseDown(index, $event)">
+                            <textarea v-if="editingBlock === index" data-live-editor class="live-block-editor" v-model="blockDraft" rows="1" spellcheck="false" @input="onBlockInput" @blur="onBlockBlur(index)" @keydown.esc.prevent="commitBlockEdit"></textarea>
+                            <div v-else class="markdown-body live-block-rendered" v-html="block.html"></div>
+                          </div>
+                          <div v-if="!liveBlocks.length && editingBlock === 0" class="live-block is-editing">
+                            <textarea data-live-editor class="live-block-editor" v-model="blockDraft" rows="1" spellcheck="false" @input="onBlockInput" @blur="onBlockBlur(0)" @keydown.esc.prevent="commitBlockEdit"></textarea>
+                          </div>
                         </div>
+                      </PTabPanel>
+                      <PTabPanel value="source">
+                        <PTextarea v-model="body" class="markdown-editor" autoResize :placeholder="t('content.body_placeholder', {}, 'Write in Markdown. Front matter is handled for you.')" />
                       </PTabPanel>
                       <PTabPanel value="preview">
                         <div class="markdown-body preview-pane" v-html="preview"></div>
                       </PTabPanel>
                     </PTabPanels>
                   </PTabs>
-                  <div class="editor-footer"><span>{{ t('content.words', {}, 'Words') }}: {{ wordCount }}</span><span>{{ t('content.markdown_supported', {}, 'Markdown supported') }}</span></div>
+                  <div class="editor-footer"><span>{{ t('content.words', {}, 'Words') }}: {{ wordCount }}</span><span>{{ t('content.live_edit_hint', {}, 'Click a block to edit its Markdown; click elsewhere to see it rendered.') }}</span></div>
                 </template>
               </PCard>
 

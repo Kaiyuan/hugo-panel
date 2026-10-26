@@ -144,6 +144,7 @@
   "content.invalid_json": "“{key}”에 잘못된 JSON이 포함되어 있습니다.",
   "content.invalid_number": "“{key}”는 숫자여야 합니다.",
   "content.library": "라이브러리",
+  "content.live_edit_hint": "블록을 클릭하면 Markdown을 편집할 수 있고, 다른 곳을 클릭하면 렌더링된 결과가 표시됩니다.",
   "content.markdown_supported": "마크다운 지원",
   "content.new": "새 콘텐츠",
   "content.no_extra_fields": "추가 머리말 필드가 없습니다.",

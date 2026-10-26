@@ -144,6 +144,7 @@
   "content.invalid_json": "“{key}” contiene JSON no válido.",
   "content.invalid_number": "“{key}” debe ser un número.",
   "content.library": "Biblioteca",
+  "content.live_edit_hint": "Haz clic en un bloque para editar su Markdown; haz clic fuera para ver el resultado.",
   "content.markdown_supported": "Rebajas compatibles",
   "content.new": "Nuevo contenido",
   "content.no_extra_fields": "No hay campos adicionales para el texto inicial.",

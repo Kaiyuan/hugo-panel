@@ -144,6 +144,7 @@
   "content.invalid_json": "“{key}” contains invalid JSON.",
   "content.invalid_number": "“{key}” must be a number.",
   "content.library": "Library",
+  "content.live_edit_hint": "Click a block to edit its Markdown; click elsewhere to see it rendered.",
   "content.markdown_supported": "Markdown supported",
   "content.new": "New content",
   "content.no_extra_fields": "No extra front matter fields.",
