@@ -173,7 +173,7 @@
     document.documentElement.classList.toggle('dark', dark);
     document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', dark ? '#000000' : '#f6f7f9');
+    if (meta) meta.setAttribute('content', dark ? '#000000' : '#f4f5f7');
     try { localStorage.setItem('hp_theme', mode); } catch (e) {}
     if (opts.persistUser !== false && state.user) {
       state.user.theme = mode;
