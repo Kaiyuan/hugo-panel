@@ -109,7 +109,7 @@
         id: '', name: '', type: 'local', root: '', public_base: '',
         endpoint: '', region: 'us-east-1', bucket: '', access_key: '', secret_key: '',
         base_url: '', username: '', password: '', prefix: '', path_style: false,
-        insecure_skip_verify: false, max_upload_mb: 512
+        insecure_skip_verify: false, host_ip: '', max_upload_mb: 512
       });
       const libraryForm = reactive(blankLibrary());
       const libraryHasSecret = ref(false);
@@ -121,6 +121,10 @@
       ]);
 
       const currentLibrary = computed(() => current.value || libraries.value.find((l) => l.id === libraryId.value) || null);
+      const libraryHostname = computed(() => {
+        const raw = libraryForm.type === 's3' ? libraryForm.endpoint : libraryForm.base_url;
+        try { return new URL(raw).hostname; } catch (e) { return ''; }
+      });
       const crumbs = computed(() => {
         const out = [{ label: t('media.root', {}, 'Root'), path: '' }];
         let acc = '';
@@ -326,6 +330,7 @@
           access_key: library.access_key || '', secret_key: '', base_url: library.base_url || '',
           username: library.username || '', password: '', prefix: library.prefix || '',
           path_style: !!library.path_style, insecure_skip_verify: !!library.insecure_skip_verify,
+          host_ip: library.host_ip || '',
           max_upload_mb: library.max_upload_mb || defaultMaxUpload.value
         });
         libraryHasSecret.value = !!library.has_secret;
@@ -391,7 +396,7 @@
         error, dragging, fileInput, maxUploadMB, previewVisible, selected, previewText, previewLoading,
         folderVisible, folderName, folderBusy, transferVisible, transfer, transferBusy,
         storageVisible, libraryFormVisible, libraryFormEditing, libraryForm, libraryHasSecret,
-        libraryTesting, librarySaving, libraryTestError, typeOptions, currentLibrary, crumbs, folderEntries, fileEntries, accept,
+        libraryTesting, librarySaving, libraryTestError, typeOptions, currentLibrary, libraryHostname, crumbs, folderEntries, fileEntries, accept,
         refresh, selectLibrary, openFolder, goCrumb, chooseFiles, onInput, onDrop,
         createFolder, openPreview, copyUrl, copyMarkdown, openTransfer, submitTransfer, remove,
         openStorage, addLibrary, editLibrary, testLibrary, saveLibrary, deleteLibrary,
@@ -597,6 +602,15 @@
                 </div>
                 <label class="field"><span>{{ t('media.prefix', {}, 'Prefix / folder') }}</span><PInputText v-model="libraryForm.prefix" placeholder="media" class="mono-input" /></label>
               </template>
+              <label v-if="libraryForm.type !== 'local'" class="field">
+                <span>{{ t('media.host_ip', {}, 'Host IP (optional)') }}</span>
+                <PInputText v-model="libraryForm.host_ip" placeholder="192.168.2.10" class="mono-input" />
+                <small class="field-hint"><i class="pi pi-info-circle"></i>
+                  {{ libraryHostname
+                    ? t('media.host_ip_hint', { host: libraryHostname }, 'Dial this IP instead of resolving {host}. TLS and the Host header still use the hostname. Useful when Docker DNS cannot resolve the NAS.')
+                    : t('media.host_ip_hint_empty', {}, 'Optional: dial this IP instead of resolving the URL hostname. TLS and the Host header still use the hostname.') }}
+                </small>
+              </label>
               <div v-if="libraryForm.type !== 'local'" class="switch-row">
                 <div><strong>{{ t('media.insecure_tls', {}, 'Allow self-signed certificates') }}</strong><small>{{ t('media.insecure_tls_hint', {}, 'Only enable this for a server you trust. It disables TLS certificate verification for this storage.') }}</small></div>
                 <PToggleSwitch v-model="libraryForm.insecure_skip_verify" />

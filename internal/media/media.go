@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -48,6 +49,7 @@ type Config struct {
 	PublicBase  string `json:"public_base,omitempty"`
 	PathStyle   bool   `json:"path_style,omitempty"`
 	Insecure    bool   `json:"insecure_skip_verify,omitempty"`
+	HostIP      string `json:"host_ip,omitempty"`
 	MaxUploadMB int    `json:"max_upload_mb,omitempty"`
 	Builtin     bool   `json:"builtin,omitempty"`
 }
@@ -69,6 +71,7 @@ type View struct {
 	PublicBase  string `json:"public_base,omitempty"`
 	PathStyle   bool   `json:"path_style,omitempty"`
 	Insecure    bool   `json:"insecure_skip_verify,omitempty"`
+	HostIP      string `json:"host_ip,omitempty"`
 	MaxUploadMB int    `json:"max_upload_mb"`
 	Builtin     bool   `json:"builtin"`
 	HasSecret   bool   `json:"has_secret"`
@@ -90,6 +93,7 @@ func (c Config) View() View {
 		PublicBase:  c.PublicBase,
 		PathStyle:   c.PathStyle,
 		Insecure:    c.Insecure,
+		HostIP:      c.HostIP,
 		MaxUploadMB: c.MaxUploadMB,
 		Builtin:     c.Builtin,
 		HasSecret:   c.SecretKey != "" || c.Password != "",
@@ -405,6 +409,10 @@ func normalizeConfig(cfg *Config) error {
 			return errf("invalid_request", "Public base URL must be an absolute http(s) URL")
 		}
 	}
+	cfg.HostIP = strings.Trim(strings.TrimSpace(cfg.HostIP), "[]")
+	if cfg.HostIP != "" && net.ParseIP(cfg.HostIP) == nil {
+		return errf("invalid_request", "Host IP must be an IPv4 or IPv6 address")
+	}
 	switch cfg.Type {
 	case "local":
 		root := strings.TrimSpace(cfg.Root)
@@ -420,6 +428,7 @@ func normalizeConfig(cfg *Config) error {
 		cfg.Root = filepath.Clean(root)
 		cfg.Endpoint, cfg.Bucket, cfg.AccessKey, cfg.SecretKey = "", "", "", ""
 		cfg.BaseURL, cfg.Username, cfg.Password, cfg.PathStyle, cfg.Insecure = "", "", "", false, false
+		cfg.HostIP = ""
 	case "s3":
 		u, err := url.Parse(strings.TrimSpace(cfg.Endpoint))
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {

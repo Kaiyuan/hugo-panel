@@ -193,7 +193,11 @@ ${DATA_DIR}/locales/pt-BR.json
 getent hosts nas.example.com
 ```
 
-然后把这个主机名映射进容器。`docker-compose.yml`：
+最省事的方式是在存储库设置里填写 **主机 IP**：面板会直接连接这个 IP，不再做 DNS 查询，但 HTTPS 证书校验和 `Host` 头仍然使用原来的主机名。这适用于 Docker 内置 DNS 超时、或域名只有宿主机能解析的情况。
+
+如果已经在 compose 里配置了 `dns:`（例如 `1.1.1.1`）仍然超时，说明容器到这些 DNS 的出站 53 端口被阻断；删掉 `dns:` 让 Docker 使用宿主机的解析器，或改成实际能解析该域名的内网 DNS。
+
+也可以在 Docker 层解决。`docker-compose.yml`：
 
 ```yaml
 services:

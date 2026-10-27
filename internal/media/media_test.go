@@ -188,6 +188,7 @@ func TestConfigValidation(t *testing.T) {
 		{"no bucket", Config{Name: "x", Type: "s3", Endpoint: "https://s3.example.com", AccessKey: "a", SecretKey: "s"}},
 		{"no secret", Config{Name: "x", Type: "s3", Endpoint: "https://s3.example.com", Bucket: "b", AccessKey: "a"}},
 		{"bad webdav", Config{Name: "x", Type: "webdav", BaseURL: "ftp://x"}},
+		{"bad host ip", Config{Name: "x", Type: "webdav", BaseURL: "https://dav.example.com", HostIP: "nas.local"}},
 		{"bad public base", Config{Name: "x", Type: "local", Root: "/tmp", PublicBase: "javascript:alert(1)"}},
 	}
 	for _, tc := range cases {
@@ -720,6 +721,37 @@ func TestWebDAVInsecureTLSAndBasicAuth(t *testing.T) {
 		t.Fatal("expected self-signed certificate to be rejected without the opt-in")
 	} else if !strings.Contains(err.Error(), "TLS certificate") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestWebDAVHostIPBypassesDNS(t *testing.T) {
+	var seenHost string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenHost = r.Host
+		w.WriteHeader(http.StatusMultiStatus)
+	}))
+	defer srv.Close()
+	u, _ := url.Parse(srv.URL)
+	cfg := Config{
+		ID: "dav", Name: "dav", Type: "webdav",
+		BaseURL: "http://nas.invalid:" + u.Port() + "/dav",
+		HostIP:  "127.0.0.1",
+	}
+	b, err := newWebDAV(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Test(context.Background()); err != nil {
+		t.Fatalf("host override test: %v", err)
+	}
+	if !strings.HasPrefix(seenHost, "nas.invalid:") {
+		t.Fatalf("Host header = %q, want the original hostname", seenHost)
+	}
+	if got := b.URL("posts/a.txt"); !strings.HasPrefix(got, "http://nas.invalid:") {
+		t.Fatalf("url = %q", got)
+	}
+	if !hostMatches("bucket.nas.invalid", "nas.invalid") || hostMatches("evilnas.invalid", "nas.invalid") {
+		t.Fatal("hostMatches must accept subdomains only")
 	}
 }
 

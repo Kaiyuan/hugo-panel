@@ -44,7 +44,7 @@ func newS3(cfg Config) (*s3Backend, error) {
 		cfg:      cfg,
 		endpoint: u,
 		prefix:   prefix,
-		client:   storageClient(cfg.Insecure),
+		client:   storageClient(cfg.Insecure, u.Hostname(), cfg.HostIP),
 	}, nil
 }
 
