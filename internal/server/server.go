@@ -24,6 +24,7 @@ import (
 	"github.com/Kaiyuan/hugo-panel/internal/hugo"
 	"github.com/Kaiyuan/hugo-panel/internal/i18n"
 	"github.com/Kaiyuan/hugo-panel/internal/mailer"
+	"github.com/Kaiyuan/hugo-panel/internal/media"
 	"github.com/Kaiyuan/hugo-panel/internal/settings"
 	"github.com/Kaiyuan/hugo-panel/internal/store"
 	"github.com/Kaiyuan/hugo-panel/web"
@@ -38,6 +39,7 @@ type Server struct {
 	i18n         *i18n.Manager
 	mailer       *mailer.Mailer
 	hugo         *hugo.Service
+	media        *media.Manager
 	logger       *slog.Logger
 	version      string
 	assetVersion string
@@ -67,20 +69,21 @@ func New(cfg *config.Config, st *store.Store, set *settings.Manager, tr *i18n.Ma
 		return nil, fmt.Errorf("read index.html: %w", err)
 	}
 	return &Server{
-		cfg:       cfg,
-		store:     st,
-		settings:  set,
-		i18n:      tr,
-		mailer:    ml,
-		hugo:      hs,
-		logger:    logger,
+		cfg:          cfg,
+		store:        st,
+		settings:     set,
+		i18n:         tr,
+		mailer:       ml,
+		hugo:         hs,
+		media:        media.NewManager(st, func(ctx context.Context) string { return set.HugoDir(ctx) }),
+		logger:       logger,
 		version:      version,
 		assetVersion: computeAssetVersion(version, index, staticFS),
 		started:      time.Now(),
 		staticFS:     staticFS,
 		index:        index,
-		limiter:   newRateLimiter(),
-		dummyHash: "$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW",
+		limiter:      newRateLimiter(),
+		dummyHash:    "$2a$12$R9h/cIPz0gi.URNNX3kh2OPST9/PgBkqquzi.Ss7KIUgO2t0jWMUW",
 	}, nil
 }
 
@@ -175,6 +178,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/media", s.requireAuth(s.handleMediaUpload))
 	mux.HandleFunc("DELETE /api/media", s.requireAuth(s.handleMediaDelete))
 	mux.HandleFunc("GET /api/media/file", s.requireAuth(s.handleMediaFile))
+	mux.HandleFunc("GET /api/media/libraries", s.requireAuth(s.handleMediaLibraries))
+	mux.HandleFunc("POST /api/media/libraries", s.requireAuth(s.handleMediaLibrarySave))
+	mux.HandleFunc("DELETE /api/media/libraries", s.requireAuth(s.handleMediaLibraryDelete))
+	mux.HandleFunc("POST /api/media/libraries/test", s.requireAuth(s.handleMediaLibraryTest))
+	mux.HandleFunc("POST /api/media/move", s.requireAuth(s.handleMediaMove))
+	mux.HandleFunc("POST /api/media/copy", s.requireAuth(s.handleMediaCopy))
+	mux.HandleFunc("POST /api/media/folder", s.requireAuth(s.handleMediaFolder))
 
 	mux.HandleFunc("GET /favicon.ico", s.handleFavicon)
 	mux.HandleFunc("GET /manifest.webmanifest", s.handleManifest)
@@ -394,7 +404,7 @@ func (s *Server) securityMiddleware(next http.Handler) http.Handler {
 		h.Set("X-Robots-Tag", "noindex, nofollow")
 		h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
+		h.Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob: https: http:; manifest-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'")
 		if isSecureRequest(r) {
 			h.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		}
@@ -685,6 +695,22 @@ func (s *Server) site(ctx context.Context) *hugo.Site {
 }
 
 func writeHugoError(w http.ResponseWriter, err error) {
+	var me *media.Error
+	if errors.As(err, &me) {
+		status := http.StatusBadRequest
+		switch me.Code {
+		case "not_found":
+			status = http.StatusNotFound
+		case "forbidden":
+			status = http.StatusForbidden
+		case "file_exists", "conflict", "not_initialized":
+			status = http.StatusConflict
+		case "server_error":
+			status = http.StatusInternalServerError
+		}
+		writeError(w, status, me.Code, me.Message)
+		return
+	}
 	var he *hugo.Error
 	if errors.As(err, &he) {
 		status := http.StatusBadRequest

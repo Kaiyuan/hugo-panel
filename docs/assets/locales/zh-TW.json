@@ -32,7 +32,7 @@
   "f.module.title": "外掛與模組",
   "f.module.body": "以 Hugo Modules 安裝、移除外掛，執行 <code>hugo mod tidy</code>，命令輸出與工具鏈狀態直接回顯。",
   "f.media.title": "媒體庫",
-  "f.media.body": "上傳、預覽、刪除圖片，一鍵複製 URL 或 Markdown 連結。支援 JPG、PNG、GIF、WebP、AVIF、ICO，單檔上限 20 MB。",
+  "f.media.body": "瀏覽本機目錄、S3 與 WebDAV 儲存庫。上傳、預覽、移動和複製圖片、影片、音訊、PDF 和文件，一鍵複製 URL 或 Markdown 連結。",
   "f.build.title": "建置",
   "f.build.body": "在後台執行 <code>hugo --gc --minify --cleanDestinationDir</code>，保留最後一次結果，失敗時可以寄信通知。",
   "f.i18n.title": "多語言",

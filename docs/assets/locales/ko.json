@@ -32,7 +32,7 @@
   "f.module.title": "모듈",
   "f.module.body": "Hugo Modules로 플러그인을 설치·제거하고 <code>hugo mod tidy</code>를 실행합니다. 명령 출력과 도구 체인 상태를 그대로 보여줍니다.",
   "f.media.title": "미디어 라이브러리",
-  "f.media.body": "이미지를 업로드·미리보기·삭제하고 URL이나 Markdown 링크를 한 번에 복사합니다. JPG, PNG, GIF, WebP, AVIF, ICO를 20 MB까지 지원합니다.",
+  "f.media.body": "로컬 폴더, S3, WebDAV 스토리지를 탐색합니다. 이미지, 동영상, 오디오, PDF, 문서를 업로드·미리보기·이동·복사하고 URL이나 Markdown 링크를 한 번에 복사하세요.",
   "f.build.title": "빌드",
   "f.build.body": "패널에서 <code>hugo --gc --minify --cleanDestinationDir</code>를 실행하고 마지막 결과를 보관합니다. 실패하면 이메일로 알려줍니다.",
   "f.i18n.title": "다국어",

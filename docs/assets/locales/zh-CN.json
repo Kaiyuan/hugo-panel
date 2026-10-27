@@ -32,7 +32,7 @@
   "f.module.title": "插件与模块",
   "f.module.body": "以 Hugo Modules 安装、移除插件，执行 <code>hugo mod tidy</code>，命令输出和工具链状态直接回显。",
   "f.media.title": "媒体库",
-  "f.media.body": "上传、预览、删除图片，一键复制 URL 或 Markdown 链接。支持 JPG、PNG、GIF、WebP、AVIF、ICO，单文件 20 MB。",
+  "f.media.body": "浏览本机目录、S3 与 WebDAV 存储库。上传、预览、移动和复制图片、视频、音频、PDF 和文档，一键复制 URL 或 Markdown 链接。",
   "f.build.title": "构建",
   "f.build.body": "在面板里运行 <code>hugo --gc --minify --cleanDestinationDir</code>，保留最后一次结果，失败时可以邮件通知。",
   "f.i18n.title": "多语言",

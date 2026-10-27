@@ -32,7 +32,7 @@
   "f.module.title": "Módulos",
   "f.module.body": "Instala y quita Hugo Modules, ejecuta <code>hugo mod tidy</code> y consulta la salida del comando y el estado de las herramientas.",
   "f.media.title": "Biblioteca de medios",
-  "f.media.body": "Sube, previsualiza y elimina imágenes, y copia una URL o un enlace Markdown con un clic. JPG, PNG, GIF, WebP, AVIF e ICO de hasta 20 MB.",
+  "f.media.body": "Explora carpetas locales, S3 y WebDAV. Sube, previsualiza, mueve y copia imágenes, vídeos, audio, PDF y documentos, y copia una URL o un enlace Markdown con un clic.",
   "f.build.title": "Compilaciones",
   "f.build.body": "Ejecuta <code>hugo --gc --minify --cleanDestinationDir</code> desde el panel, conserva el último resultado y recibe un correo si falla.",
   "f.i18n.title": "Idiomas",

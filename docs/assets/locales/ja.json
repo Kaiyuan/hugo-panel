@@ -32,7 +32,7 @@
   "f.module.title": "モジュール",
   "f.module.body": "Hugo Modules としてプラグインを追加・削除し、<code>hugo mod tidy</code> を実行。コマンド出力とツールチェーンの状態もその場で確認できます。",
   "f.media.title": "メディア",
-  "f.media.body": "画像のアップロード、プレビュー、削除、URL や Markdown リンクのコピーをワンクリックで。JPG、PNG、GIF、WebP、AVIF、ICO に 20 MB まで対応。",
+  "f.media.body": "ローカルフォルダー、S3、WebDAV のストレージを閲覧。画像、動画、音声、PDF、文書をアップロード、プレビュー、移動、コピーし、URL や Markdown リンクをワンクリックでコピーできます。",
   "f.build.title": "ビルド",
   "f.build.body": "管理画面から <code>hugo --gc --minify --cleanDestinationDir</code> を実行し、最後の結果を保持。失敗時はメールで通知できます。",
   "f.i18n.title": "多言語",

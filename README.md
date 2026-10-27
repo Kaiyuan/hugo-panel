@@ -21,7 +21,7 @@
 - **内容管理**：Markdown 页面/文章的新建、编辑、重命名、删除、搜索、筛选和分页；YAML / TOML / JSON front matter；标签、分类、草稿、定时发布和自定义字段；Markdown 实时预览。
 - **主题管理**：列出 `themes/` 下的主题，启用主题，从 Git 安装、更新、移除主题；可视化编辑站点配置、主题参数和菜单。
 - **插件管理**：以 Hugo Modules 方式安装/移除插件，执行 `hugo mod tidy`，并显示命令输出与工具链状态。
-- **媒体库**：上传、预览、复制 URL / Markdown、删除图片，支持 20 MB 以内的 JPG、PNG、GIF、WebP、AVIF、ICO。
+- **媒体库**：支持本机目录、S3（含 MinIO 等兼容服务）和 WebDAV 存储库；按文件夹浏览、上传、预览、复制 URL / Markdown、移动、复制和删除。可预览图片、视频、音频、PDF 与文本，其他文档可直接下载；编辑器内可打开媒体选择器插入 URL 或 Markdown。
 - **构建**：在面板中运行 `hugo --gc --minify --cleanDestinationDir`，保留最后一次构建结果；构建失败时可邮件通知管理员。
 - **SMTP**：首次启动后可在设置页配置，也可通过 Docker 环境变量注入；支持密码重置邮件和测试邮件。
 - **多语言**：内置简体中文、繁体中文、英语、法语、意大利语、西班牙语、日语、韩语、德语。每种语言是独立 JSON 文件，按需加载；支持上传自定义翻译，无需重新构建。
@@ -89,7 +89,7 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 | `/app/hugo` | Hugo 站点目录（默认值，可在设置页修改） |
 | `/app/hugo/content` | 内容目录 |
 | `/app/hugo/themes` | 本地主题 |
-| `/app/hugo/static/images` | 媒体库 |
+| `/app/hugo/static/images` | 内置媒体库（可在媒体页切换或新增存储库） |
 | `/app/hugo/public` | 构建输出 |
 
 容器默认以 UID/GID `1000` 运行，并在启动时把挂载目录 chown 给该用户。若由外部工具管理权限：
@@ -153,21 +153,35 @@ make build    # 输出 bin/hugo-panel
 内置翻译位于 `web/locales/*.json`。运行时自定义翻译放在数据目录：
 
 ```text
-${DATA_DIR}/locales/de.json
+${DATA_DIR}/locales/pt-BR.json
 ```
 
 文件是扁平的 `key: value` JSON，可参考 `en.json` 模板：
 
 ```json
 {
-  "_name": "Deutsch",
-  "_native_name": "Deutsch",
-  "nav.dashboard": "Übersicht",
-  "common.cancel": "Abbrechen"
+  "_name": "Português (Brasil)",
+  "_native_name": "Português (Brasil)",
+  "nav.dashboard": "Painel",
+  "common.cancel": "Cancelar"
 }
 ```
 
 也可以在 **设置 → 语言 → 添加翻译** 中上传 JSON 文件。缺失的键会自动回退到英文；新增语言无需重新编译或重启。
+
+## 媒体存储
+
+媒体页默认使用 Hugo 站点内的 `static/images`，也可以通过 **媒体 → 存储库设置** 添加更多存储库：
+
+- **本机目录**：服务器上的绝对路径。适合挂载 NFS、对象存储网关或已有素材目录。
+- **S3**：AWS S3、MinIO、Cloudflare R2、Backblaze B2 等兼容服务。支持自定义 endpoint、region、bucket、前缀和 path-style 访问。
+- **WebDAV**：Nextcloud、ownCloud、群晖等 WebDAV 服务，使用 Basic Auth。
+
+文件 URL 由 **公开访问基础 URL + 文件夹路径** 生成。例如基础 URL 为 `https://cdn.example.com/media`，文件位于 `posts/2026/photo.jpg`，复制出的 URL 就是 `https://cdn.example.com/media/posts/2026/photo.jpg`。留空时使用存储端点本身，或对内置库使用站点的 `/images/...` 路径。
+
+上传大小上限按存储库单独设置（默认 512 MB）。反向代理（如 Nginx `client_max_body_size`）和存储服务商可能施加更低的限制。S3 密钥和 WebDAV 密码只保存在 SQLite 中，接口不会回传明文；编辑时留空表示保留原值。
+
+所有存储库都提供统一的文件操作：新建文件夹、上传、预览、复制 URL / Markdown、移动、复制和删除。移动 / 复制可以在不同存储库之间进行；跨库操作会先下载到数据目录的临时文件再上传。
 
 <!-- ## 发布
 
@@ -191,12 +205,13 @@ cmd/hugo-panel          Go 入口、HTTP 服务、优雅退出
 internal/config         环境变量配置
 internal/store          SQLite、用户、会话、设置、密码重置
 internal/settings       设置与环境变量覆盖
-internal/hugo           内容、front matter、配置、主题、模块、构建、媒体
+internal/hugo           内容、front matter、配置、主题、模块、构建
+internal/media          媒体存储库（本机目录、S3、WebDAV）与文件操作
 internal/mailer         SMTP、密码重置/构建失败邮件
 internal/i18n           语言发现、按需加载、自定义翻译
 internal/server         路由、鉴权、CSRF、安全头、API
 web/static              Vue 3 + PrimeVue 单页应用、PWA、内置依赖
-web/locales             8 种内置语言
+web/locales             9 种内置语言
 ```
 
 数据库为单文件 SQLite（WAL 模式），配置/内容写入采用临时文件 + 原子重命名，修改前会备份到 `data/backups/`。

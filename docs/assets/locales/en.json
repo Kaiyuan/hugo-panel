@@ -32,7 +32,7 @@
   "f.module.title": "Modules",
   "f.module.body": "Install and remove Hugo Modules, run <code>hugo mod tidy</code>, and see the command output and toolchain status right in the panel.",
   "f.media.title": "Media library",
-  "f.media.body": "Upload, preview and delete images, then copy a URL or Markdown link in one click. JPG, PNG, GIF, WebP, AVIF and ICO up to 20 MB.",
+  "f.media.body": "Browse local folders, S3 and WebDAV libraries. Upload, preview, move and copy images, video, audio, PDFs and documents — then copy a URL or Markdown link in one click.",
   "f.build.title": "Builds",
   "f.build.body": "Run <code>hugo --gc --minify --cleanDestinationDir</code> from the panel, keep the last result, and get an email if a build fails.",
   "f.i18n.title": "Languages",

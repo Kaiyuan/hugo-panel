@@ -32,7 +32,7 @@
   "f.module.title": "Module",
   "f.module.body": "Hugo Modules installieren und entfernen, <code>hugo mod tidy</code> ausführen und Befehlsausgabe sowie Toolchain-Status direkt im Panel sehen.",
   "f.media.title": "Mediathek",
-  "f.media.body": "Bilder hochladen, ansehen und löschen, dann eine URL oder einen Markdown-Link mit einem Klick kopieren. JPG, PNG, GIF, WebP, AVIF und ICO bis 20 MB.",
+  "f.media.body": "Lokale Ordner, S3- und WebDAV-Speicher durchsuchen. Bilder, Videos, Audio, PDFs und Dokumente hochladen, ansehen, verschieben und kopieren – URL oder Markdown-Link mit einem Klick kopieren.",
   "f.build.title": "Builds",
   "f.build.body": "<code>hugo --gc --minify --cleanDestinationDir</code> aus dem Panel ausführen, das letzte Ergebnis behalten und bei einem fehlgeschlagenen Build eine E-Mail erhalten.",
   "f.i18n.title": "Sprachen",

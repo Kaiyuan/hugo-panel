@@ -13,6 +13,7 @@ const PRECACHE = [
   '/static/js/components-ui.js',
   '/static/js/pages-dashboard.js',
   '/static/js/pages-content.js',
+  '/static/js/media.js',
   '/static/js/pages-media-themes.js',
   '/static/js/pages-plugins-build.js',
   '/static/js/pages-settings.js',

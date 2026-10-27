@@ -232,6 +232,7 @@
       const dirty = ref(false);
       const settingUp = ref(false);
       const activeTab = ref('edit');
+      const mediaPickerVisible = ref(false);
       const originalPath = ref('');
       const format = ref('yaml');
       const extras = ref([]);
@@ -566,6 +567,98 @@
       function addExtra() { extras.value.push({ key: '', type: 'string', value: '' }); }
       function removeExtra(index) { extras.value.splice(index, 1); }
       function onPathInput() { pathTouched.value = true; }
+
+      // Insert media links at the caret of whichever editor is active.
+      let pendingInsert = null;
+      function findSourceEditor() {
+        const direct = document.querySelector('textarea.markdown-editor');
+        if (direct) return direct;
+        const wrapper = document.querySelector('.markdown-editor');
+        if (!wrapper) return null;
+        return wrapper.tagName === 'TEXTAREA' ? wrapper : wrapper.querySelector('textarea');
+      }
+      function openMediaPicker() {
+        pendingInsert = null;
+        if (activeTab.value === 'source') {
+          const el = findSourceEditor();
+          if (el) pendingInsert = { type: 'source', start: el.selectionStart, end: el.selectionEnd, value: body.value };
+        } else if (editingBlock.value !== -1) {
+          const el = document.querySelector('textarea[data-live-editor]');
+          if (el) {
+            pendingInsert = {
+              type: 'live', blockStart: editStart, start: el.selectionStart, end: el.selectionEnd,
+              value: blockDraft.value
+            };
+          }
+        }
+        mediaPickerVisible.value = true;
+      }
+      function insertMedia(payload) {
+        const text = payload && payload.text;
+        if (!text) return;
+        // The picker steals focus, so use the selection captured when it opened.
+        if (pendingInsert && pendingInsert.type === 'source') {
+          const start = pendingInsert.start === null ? body.value.length : pendingInsert.start;
+          const end = pendingInsert.end === null ? start : pendingInsert.end;
+          body.value = body.value.slice(0, start) + text + body.value.slice(end);
+          const caret = start + text.length;
+          nextTick(() => {
+            const el = findSourceEditor();
+            if (el) { el.focus(); el.setSelectionRange(caret, caret); }
+          });
+          markDirty();
+          pendingInsert = null;
+          return;
+        }
+        if (pendingInsert && pendingInsert.type === 'live') {
+          if (editingBlock.value !== -1 && editStart === pendingInsert.blockStart) {
+            const start = pendingInsert.start === null ? blockDraft.value.length : pendingInsert.start;
+            const end = pendingInsert.end === null ? start : pendingInsert.end;
+            blockDraft.value = blockDraft.value.slice(0, start) + text + blockDraft.value.slice(end);
+            const caret = start + text.length;
+            nextTick(() => {
+              const el = document.querySelector('textarea[data-live-editor]');
+              if (el) { el.focus(); el.setSelectionRange(caret, caret); }
+            });
+            markDirty();
+            pendingInsert = null;
+            return;
+          }
+          // The block was committed when the picker opened; insert into the body.
+          const start = pendingInsert.blockStart + (pendingInsert.start || 0);
+          const end = pendingInsert.blockStart + (pendingInsert.end === null ? (pendingInsert.start || 0) : pendingInsert.end);
+          body.value = body.value.slice(0, start) + text + body.value.slice(end);
+          markDirty();
+          pendingInsert = null;
+          return;
+        }
+        if (activeTab.value === 'source') {
+          const el = findSourceEditor();
+          if (el) {
+            const start = el.selectionStart === null ? body.value.length : el.selectionStart;
+            const end = el.selectionEnd === null ? start : el.selectionEnd;
+            body.value = body.value.slice(0, start) + text + body.value.slice(end);
+            const caret = start + text.length;
+            nextTick(() => { el.focus(); el.setSelectionRange(caret, caret); });
+            markDirty();
+            return;
+          }
+        }
+        if (editingBlock.value !== -1) {
+          const el = document.querySelector('textarea[data-live-editor]');
+          const start = el && el.selectionStart !== null ? el.selectionStart : blockDraft.value.length;
+          const end = el && el.selectionEnd !== null ? el.selectionEnd : start;
+          blockDraft.value = blockDraft.value.slice(0, start) + text + blockDraft.value.slice(end);
+          const caret = start + text.length;
+          nextTick(() => { if (el) { el.focus(); el.setSelectionRange(caret, caret); } });
+          markDirty();
+          return;
+        }
+        const prefix = !body.value ? '' : (/\n\s*$/.test(body.value) ? '\n' : '\n\n');
+        body.value += prefix + text + '\n';
+        markDirty();
+      }
+      watch(mediaPickerVisible, (visible) => { if (!visible) pendingInsert = null; });
       function beforeUnload(e) {
         if (!dirty.value) return;
         e.preventDefault();
@@ -579,7 +672,7 @@
         isNew, loading, saving, deleting, error, loadError, dirty, activeTab, form, body, format, extras,
         formatOptions, typeOptions, wordCount: liveWordCount, preview, metaStatus, pathExt, load, save, back,
         liveBlocks, editingBlock, blockDraft, beginBlockEdit, onBlockMouseDown, commitBlockEdit, onBlockBlur, onBlockInput,
-        remove, addExtra, removeExtra, onPathInput, confirmLeave, go: HP.navigate,
+        remove, addExtra, removeExtra, onPathInput, confirmLeave, mediaPickerVisible, openMediaPicker, insertMedia, go: HP.navigate,
         formatDate: HP.formatDate, t
       };
     },
@@ -588,6 +681,7 @@
         <PageHeader :eyebrow="t('content.library', {}, 'Library')" :title="isNew ? t('content.new', {}, 'New content') : t('content.edit', {}, 'Edit content')" :subtitle="form.path || t('content.editor_subtitle', {}, 'Draft, preview and publish Markdown.')" live>
           <template #actions>
             <PButton text :label="t('common.back', {}, 'Back')" icon="pi pi-arrow-left" @click="back" />
+            <PButton text icon="pi pi-image" :label="t('media.insert_media', {}, 'Insert media')" @click="openMediaPicker" />
             <PButton v-if="!isNew" text severity="danger" icon="pi pi-trash" :loading="deleting" @click="remove" :title="t('common.delete')" />
             <PButton :label="t('content.save', {}, 'Save content')" icon="pi pi-check" :loading="saving" @click="save" class="btn-primary" />
           </template>
@@ -734,6 +828,8 @@
             </aside>
           </div>
         </template>
+
+        <MediaPicker v-model:visible="mediaPickerVisible" @insert="insertMedia" />
       </div>
     `
   };
