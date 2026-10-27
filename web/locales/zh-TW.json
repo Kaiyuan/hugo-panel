@@ -332,6 +332,9 @@
   "media.drop_hint": "圖片、影片、音訊、PDF 和文件 · 最大 {size}",
   "media.empty_title": "此資料夾為空",
   "media.empty_text": "上傳檔案或建立資料夾來整理媒體。",
+  "media.builtin_library": "網站圖片",
+  "media.insecure_tls": "允許自簽章憑證",
+  "media.insecure_tls_hint": "僅在你信任伺服器時開啟。開啟後會對此儲存庫關閉 TLS 憑證驗證。",
   "nav.build": "建置",
   "nav.content": "內容",
   "nav.dashboard": "儀表板",
@@ -524,6 +527,5 @@
   "themes.updated": "{name} 已更新",
   "themes.url_required": "輸入 Git 儲存庫 URL",
   "common.back_online": "已恢復線上",
-  "errors.invalid_front_matter": "無法解析此檔案的 front matter。",
-  "media.builtin_library": "網站圖片"
+  "errors.invalid_front_matter": "無法解析此檔案的 front matter。"
 }

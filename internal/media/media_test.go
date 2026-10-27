@@ -683,6 +683,61 @@ func TestSafeContentType(t *testing.T) {
 	}
 }
 
+func TestWebDAVInsecureTLSAndBasicAuth(t *testing.T) {
+	var seenAuth, seenMethod, seenDepth string
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenAuth = r.Header.Get("Authorization")
+		seenMethod = r.Method
+		seenDepth = r.Header.Get("Depth")
+		w.WriteHeader(http.StatusMultiStatus)
+	}))
+	defer srv.Close()
+
+	cfg := Config{
+		ID: "dav", Name: "dav", Type: "webdav", BaseURL: srv.URL + "/dav",
+		Username: "user", Password: "pass", Insecure: true,
+	}
+	b, err := newWebDAV(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Test(context.Background()); err != nil {
+		t.Fatalf("insecure TLS test: %v", err)
+	}
+	if !strings.HasPrefix(seenAuth, "Basic ") {
+		t.Fatalf("missing basic auth: %q", seenAuth)
+	}
+	if seenMethod != "PROPFIND" || seenDepth != "0" {
+		t.Fatalf("request = %s depth %s", seenMethod, seenDepth)
+	}
+
+	cfg.Insecure = false
+	plain, err := newWebDAV(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := plain.Test(context.Background()); err == nil {
+		t.Fatal("expected self-signed certificate to be rejected without the opt-in")
+	} else if !strings.Contains(err.Error(), "TLS certificate") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestWebDAVRedirectIsReported(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://example.com/dav/", http.StatusMovedPermanently)
+	}))
+	defer srv.Close()
+	b, err := newWebDAV(Config{ID: "dav", Name: "dav", Type: "webdav", BaseURL: srv.URL + "/dav"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = b.Test(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "redirected") {
+		t.Fatalf("expected redirect error, got %v", err)
+	}
+}
+
 func TestCleanPathAndSanitize(t *testing.T) {
 	for _, bad := range []string{"../x", "a/../../b", "/etc/passwd", "a\x00b", "a\rb"} {
 		if _, err := CleanPath(bad); err == nil {

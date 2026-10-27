@@ -44,7 +44,7 @@ func newS3(cfg Config) (*s3Backend, error) {
 		cfg:      cfg,
 		endpoint: u,
 		prefix:   prefix,
-		client:   &http.Client{Timeout: 10 * time.Minute},
+		client:   storageClient(cfg.Insecure),
 	}, nil
 }
 
@@ -102,7 +102,7 @@ func (b *s3Backend) request(ctx context.Context, method, key string, query url.V
 	b.sign(req, escaped, qs, payloadHash, time.Now().UTC())
 	resp, err := b.client.Do(req)
 	if err != nil {
-		return nil, errf("server_error", "Could not reach the S3 endpoint: %v", err)
+		return nil, networkError(err, "S3")
 	}
 	return resp, nil
 }

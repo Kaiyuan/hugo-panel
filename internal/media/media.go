@@ -47,6 +47,7 @@ type Config struct {
 	Prefix      string `json:"prefix,omitempty"`
 	PublicBase  string `json:"public_base,omitempty"`
 	PathStyle   bool   `json:"path_style,omitempty"`
+	Insecure    bool   `json:"insecure_skip_verify,omitempty"`
 	MaxUploadMB int    `json:"max_upload_mb,omitempty"`
 	Builtin     bool   `json:"builtin,omitempty"`
 }
@@ -67,6 +68,7 @@ type View struct {
 	Prefix      string `json:"prefix,omitempty"`
 	PublicBase  string `json:"public_base,omitempty"`
 	PathStyle   bool   `json:"path_style,omitempty"`
+	Insecure    bool   `json:"insecure_skip_verify,omitempty"`
 	MaxUploadMB int    `json:"max_upload_mb"`
 	Builtin     bool   `json:"builtin"`
 	HasSecret   bool   `json:"has_secret"`
@@ -87,6 +89,7 @@ func (c Config) View() View {
 		Prefix:      c.Prefix,
 		PublicBase:  c.PublicBase,
 		PathStyle:   c.PathStyle,
+		Insecure:    c.Insecure,
 		MaxUploadMB: c.MaxUploadMB,
 		Builtin:     c.Builtin,
 		HasSecret:   c.SecretKey != "" || c.Password != "",
@@ -416,7 +419,7 @@ func normalizeConfig(cfg *Config) error {
 		}
 		cfg.Root = filepath.Clean(root)
 		cfg.Endpoint, cfg.Bucket, cfg.AccessKey, cfg.SecretKey = "", "", "", ""
-		cfg.BaseURL, cfg.Username, cfg.Password, cfg.PathStyle = "", "", "", false
+		cfg.BaseURL, cfg.Username, cfg.Password, cfg.PathStyle, cfg.Insecure = "", "", "", false, false
 	case "s3":
 		u, err := url.Parse(strings.TrimSpace(cfg.Endpoint))
 		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {

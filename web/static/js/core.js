@@ -105,6 +105,9 @@
   function errorText(err) {
     if (!err) return t('errors.generic', {}, 'Something went wrong');
     const key = 'errors.' + (err.code || 'generic');
+    // Server/storage errors carry the actionable detail (DNS, TLS, HTTP status,
+    // upstream body). The generic translation would hide it.
+    if (err.code === 'server_error' && err.message) return err.message;
     return t(key, {}, err.message || t('errors.generic', {}, 'Something went wrong'));
   }
   HP.errorText = errorText;

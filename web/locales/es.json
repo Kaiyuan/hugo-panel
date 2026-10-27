@@ -332,6 +332,9 @@
   "media.drop_hint": "Imágenes, vídeo, audio, PDF y documentos · hasta {size}",
   "media.empty_title": "Esta carpeta está vacía",
   "media.empty_text": "Sube un archivo o crea una carpeta para organizar tus medios.",
+  "media.builtin_library": "Imágenes del sitio",
+  "media.insecure_tls": "Permitir certificados autofirmados",
+  "media.insecure_tls_hint": "Actívalo solo para un servidor de confianza. Desactiva la verificación del certificado TLS para este almacenamiento.",
   "nav.build": "Compilación",
   "nav.content": "Contenido",
   "nav.dashboard": "Panel",
@@ -524,6 +527,5 @@
   "themes.updated": "{name} actualizado",
   "themes.url_required": "Ingrese una URL del repositorio de Git",
   "common.back_online": "De nuevo en línea",
-  "errors.invalid_front_matter": "No se pudo analizar el front matter de este archivo.",
-  "media.builtin_library": "Imágenes del sitio"
+  "errors.invalid_front_matter": "No se pudo analizar el front matter de este archivo."
 }

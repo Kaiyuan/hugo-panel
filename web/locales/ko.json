@@ -332,6 +332,9 @@
   "media.drop_hint": "이미지, 동영상, 오디오, PDF 및 문서 · 최대 {size}",
   "media.empty_title": "이 폴더는 비어 있습니다",
   "media.empty_text": "파일을 업로드하거나 폴더를 만들어 미디어를 정리하세요.",
+  "media.builtin_library": "사이트 이미지",
+  "media.insecure_tls": "자체 서명 인증서 허용",
+  "media.insecure_tls_hint": "신뢰하는 서버에서만 사용하세요. 이 스토리지에 대해 TLS 인증서 검증을 비활성화합니다.",
   "nav.build": "빌드",
   "nav.content": "콘텐츠",
   "nav.dashboard": "대시보드",
@@ -524,6 +527,5 @@
   "themes.updated": "{name} 업데이트됨",
   "themes.url_required": "Git 저장소 URL을 입력하세요.",
   "common.back_online": "다시 온라인",
-  "errors.invalid_front_matter": "이 파일의 front matter를 해석할 수 없습니다.",
-  "media.builtin_library": "사이트 이미지"
+  "errors.invalid_front_matter": "이 파일의 front matter를 해석할 수 없습니다."
 }

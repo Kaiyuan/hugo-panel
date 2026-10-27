@@ -332,6 +332,9 @@
   "media.drop_hint": "画像、動画、音声、PDF、文書 · 最大 {size}",
   "media.empty_title": "このフォルダーは空です",
   "media.empty_text": "ファイルをアップロードするか、フォルダーを作成してメディアを整理しましょう。",
+  "media.builtin_library": "サイト画像",
+  "media.insecure_tls": "自己署名証明書を許可",
+  "media.insecure_tls_hint": "信頼できるサーバーの場合のみ有効にしてください。このストレージでは TLS 証明書の検証が無効になります。",
   "nav.build": "ビルド",
   "nav.content": "コンテンツ",
   "nav.dashboard": "ダッシュボード",
@@ -524,6 +527,5 @@
   "themes.updated": "{name} を更新しました",
   "themes.url_required": "Git リポジトリ URL を入力します",
   "common.back_online": "オンラインに戻りました",
-  "errors.invalid_front_matter": "このファイルの front matter を解析できませんでした。",
-  "media.builtin_library": "サイト画像"
+  "errors.invalid_front_matter": "このファイルの front matter を解析できませんでした。"
 }

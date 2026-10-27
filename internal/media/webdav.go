@@ -48,8 +48,18 @@ func newWebDAV(cfg Config) (*webdavBackend, error) {
 		username:   cfg.Username,
 		password:   cfg.Password,
 		publicBase: strings.TrimRight(cfg.PublicBase, "/"),
-		client:     &http.Client{Timeout: 10 * time.Minute},
+		client:     webdavClient(cfg.Insecure),
 	}, nil
+}
+
+func webdavClient(insecure bool) *http.Client {
+	client := storageClient(insecure)
+	// Do not silently turn PROPFIND into GET on a 301/302. Report the redirect
+	// instead so the admin can enter the final URL.
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return client
 }
 
 func (b *webdavBackend) endpointRel(rel string, isDir bool) string {
@@ -90,7 +100,7 @@ func (b *webdavBackend) request(ctx context.Context, method, target string, body
 	}
 	resp, err := b.client.Do(req)
 	if err != nil {
-		return nil, errf("server_error", "Could not reach the WebDAV server: %v", err)
+		return nil, networkError(err, "WebDAV")
 	}
 	return resp, nil
 }
@@ -106,7 +116,16 @@ func davError(resp *http.Response) error {
 	case http.StatusNotFound:
 		return errf("not_found", "File not found")
 	case http.StatusUnauthorized, http.StatusForbidden:
+		if strings.Contains(strings.ToLower(resp.Header.Get("WWW-Authenticate")), "digest") {
+			return errf("forbidden", "WebDAV requires Digest authentication, which is not supported. Use Basic authentication or an app password.")
+		}
 		return errf("forbidden", "WebDAV denied the request: %s", message)
+	case http.StatusMovedPermanently, http.StatusFound, http.StatusSeeOther, http.StatusTemporaryRedirect, http.StatusPermanentRedirect:
+		location := resp.Header.Get("Location")
+		if location == "" {
+			location = "another URL"
+		}
+		return errf("invalid_request", "WebDAV redirected to %s. Enter that HTTPS URL as the storage URL.", location)
 	case http.StatusPreconditionFailed:
 		return errf("file_exists", "A file already exists at this path")
 	case http.StatusConflict:

@@ -705,6 +705,8 @@ func writeHugoError(w http.ResponseWriter, err error) {
 			status = http.StatusForbidden
 		case "file_exists", "conflict", "not_initialized":
 			status = http.StatusConflict
+		case "storage_unreachable":
+			status = http.StatusBadGateway
 		case "server_error":
 			status = http.StatusInternalServerError
 		}

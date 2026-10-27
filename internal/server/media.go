@@ -103,6 +103,11 @@ func (s *Server) handleMediaLibraryTest(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 	if err := s.media.Test(r.Context(), cfg); err != nil {
+		target := cfg.Endpoint
+		if cfg.Type == "webdav" {
+			target = cfg.BaseURL
+		}
+		s.logger.Warn("media storage test failed", "type", cfg.Type, "target", target, "error", err)
 		writeHugoError(w, err)
 		return
 	}

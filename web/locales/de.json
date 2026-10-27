@@ -332,6 +332,9 @@
   "media.drop_hint": "Bilder, Videos, Audio, PDF und Dokumente · bis zu {size}",
   "media.empty_title": "Dieser Ordner ist leer",
   "media.empty_text": "Lade eine Datei hoch oder erstelle einen Ordner, um deine Medien zu organisieren.",
+  "media.builtin_library": "Website-Bilder",
+  "media.insecure_tls": "Selbstsignierte Zertifikate erlauben",
+  "media.insecure_tls_hint": "Nur für einen vertrauenswürdigen Server aktivieren. Die TLS-Zertifikatsprüfung wird für diesen Speicher deaktiviert.",
   "nav.build": "Build",
   "nav.content": "Inhalte",
   "nav.dashboard": "Dashboard",
@@ -524,6 +527,5 @@
   "themes.updated": "{name} aktualisiert",
   "themes.url_required": "Eine Git-Repository-URL eingeben",
   "common.back_online": "Wieder online",
-  "errors.invalid_front_matter": "Das Front Matter in dieser Datei konnte nicht gelesen werden.",
-  "media.builtin_library": "Website-Bilder"
+  "errors.invalid_front_matter": "Das Front Matter in dieser Datei konnte nicht gelesen werden."
 }

@@ -179,7 +179,7 @@ ${DATA_DIR}/locales/pt-BR.json
 
 文件 URL 由 **公开访问基础 URL + 文件夹路径** 生成。例如基础 URL 为 `https://cdn.example.com/media`，文件位于 `posts/2026/photo.jpg`，复制出的 URL 就是 `https://cdn.example.com/media/posts/2026/photo.jpg`。留空时使用存储端点本身，或对内置库使用站点的 `/images/...` 路径。
 
-上传大小上限按存储库单独设置（默认 512 MB）。反向代理（如 Nginx `client_max_body_size`）和存储服务商可能施加更低的限制。S3 密钥和 WebDAV 密码只保存在 SQLite 中，接口不会回传明文；编辑时留空表示保留原值。
+上传大小上限按存储库单独设置（默认 512 MB）。反向代理（如 Nginx `client_max_body_size`）和存储服务商可能施加更低的限制。S3 密钥和 WebDAV 密码只保存在 SQLite 中，接口不会回传明文；编辑时留空表示保留原值。若 NAS 或自建服务使用自签名证书，可在该存储库中开启「允许自签名证书」；保存前可以点「测试连接」验证 URL、账号和证书。
 
 所有存储库都提供统一的文件操作：新建文件夹、上传、预览、复制 URL / Markdown、移动、复制和删除。移动 / 复制可以在不同存储库之间进行；跨库操作会先下载到数据目录的临时文件再上传。
 

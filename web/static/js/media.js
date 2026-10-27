@@ -104,10 +104,12 @@
       const libraryFormEditing = ref(false);
       const libraryTesting = ref(false);
       const librarySaving = ref(false);
+      const libraryTestError = ref('');
       const blankLibrary = () => ({
         id: '', name: '', type: 'local', root: '', public_base: '',
         endpoint: '', region: 'us-east-1', bucket: '', access_key: '', secret_key: '',
-        base_url: '', username: '', password: '', prefix: '', path_style: false, max_upload_mb: 512
+        base_url: '', username: '', password: '', prefix: '', path_style: false,
+        insecure_skip_verify: false, max_upload_mb: 512
       });
       const libraryForm = reactive(blankLibrary());
       const libraryHasSecret = ref(false);
@@ -309,6 +311,7 @@
         libraryForm.max_upload_mb = defaultMaxUpload.value;
         libraryHasSecret.value = false;
         libraryFormEditing.value = false;
+        libraryTestError.value = '';
       }
       function addLibrary() {
         resetLibraryForm();
@@ -322,7 +325,8 @@
           region: library.region || 'us-east-1', bucket: library.bucket || '',
           access_key: library.access_key || '', secret_key: '', base_url: library.base_url || '',
           username: library.username || '', password: '', prefix: library.prefix || '',
-          path_style: !!library.path_style, max_upload_mb: library.max_upload_mb || defaultMaxUpload.value
+          path_style: !!library.path_style, insecure_skip_verify: !!library.insecure_skip_verify,
+          max_upload_mb: library.max_upload_mb || defaultMaxUpload.value
         });
         libraryHasSecret.value = !!library.has_secret;
         libraryFormEditing.value = true;
@@ -330,10 +334,14 @@
       }
       function testLibrary() {
         libraryTesting.value = true;
+        libraryTestError.value = '';
         const payload = Object.assign({}, libraryForm, { max_upload_mb: Number(libraryForm.max_upload_mb) || 512 });
         HP.api('/media/libraries/test', { method: 'POST', body: payload })
           .then(() => HP.toast('success', t('media.test_ok', {}, 'Connection works')))
-          .catch((e) => HP.notifyError(e))
+          .catch((e) => {
+            libraryTestError.value = humanError(e);
+            HP.notifyError(e);
+          })
           .finally(() => { libraryTesting.value = false; });
       }
       function saveLibrary() {
@@ -383,7 +391,7 @@
         error, dragging, fileInput, maxUploadMB, previewVisible, selected, previewText, previewLoading,
         folderVisible, folderName, folderBusy, transferVisible, transfer, transferBusy,
         storageVisible, libraryFormVisible, libraryFormEditing, libraryForm, libraryHasSecret,
-        libraryTesting, librarySaving, typeOptions, currentLibrary, crumbs, folderEntries, fileEntries, accept,
+        libraryTesting, librarySaving, libraryTestError, typeOptions, currentLibrary, crumbs, folderEntries, fileEntries, accept,
         refresh, selectLibrary, openFolder, goCrumb, chooseFiles, onInput, onDrop,
         createFolder, openPreview, copyUrl, copyMarkdown, openTransfer, submitTransfer, remove,
         openStorage, addLibrary, editLibrary, testLibrary, saveLibrary, deleteLibrary,
@@ -550,6 +558,7 @@
           </template>
           <template v-else>
             <div class="form-stack">
+              <PMessage v-if="libraryTestError" severity="error" :closable="false">{{ libraryTestError }}</PMessage>
               <div class="field-grid">
                 <label class="field"><span>{{ t('media.name', {}, 'Name') }}</span><PInputText v-model="libraryForm.name" :placeholder="t('media.name_hint', {}, 'Media CDN')" /></label>
                 <label class="field"><span>{{ t('media.type', {}, 'Type') }}</span><PSelect v-model="libraryForm.type" :options="typeOptions" optionLabel="label" optionValue="value" class="w-full" /></label>
@@ -588,6 +597,10 @@
                 </div>
                 <label class="field"><span>{{ t('media.prefix', {}, 'Prefix / folder') }}</span><PInputText v-model="libraryForm.prefix" placeholder="media" class="mono-input" /></label>
               </template>
+              <div v-if="libraryForm.type !== 'local'" class="switch-row">
+                <div><strong>{{ t('media.insecure_tls', {}, 'Allow self-signed certificates') }}</strong><small>{{ t('media.insecure_tls_hint', {}, 'Only enable this for a server you trust. It disables TLS certificate verification for this storage.') }}</small></div>
+                <PToggleSwitch v-model="libraryForm.insecure_skip_verify" />
+              </div>
               <label class="field"><span>{{ t('media.max_upload', {}, 'Maximum upload size (MB)') }}</span><PInputNumber v-model="libraryForm.max_upload_mb" :min="1" :max="4096" :showButtons="false" class="w-full" />
                 <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('media.max_upload_hint', {}, 'Your reverse proxy and storage provider may impose a lower limit.') }}</small>
               </label>

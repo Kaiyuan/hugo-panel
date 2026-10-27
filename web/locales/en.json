@@ -332,6 +332,9 @@
   "media.drop_hint": "Images, video, audio, PDF and documents · up to {size}",
   "media.empty_title": "This folder is empty",
   "media.empty_text": "Upload a file or create a folder to organise your media.",
+  "media.builtin_library": "Site images",
+  "media.insecure_tls": "Allow self-signed certificates",
+  "media.insecure_tls_hint": "Only enable this for a server you trust. It disables TLS certificate verification for this storage.",
   "nav.build": "Build",
   "nav.content": "Content",
   "nav.dashboard": "Dashboard",
@@ -524,6 +527,5 @@
   "themes.updated": "{name} updated",
   "themes.url_required": "Enter a Git repository URL",
   "common.back_online": "Back online",
-  "errors.invalid_front_matter": "The front matter in this file could not be parsed.",
-  "media.builtin_library": "Site images"
+  "errors.invalid_front_matter": "The front matter in this file could not be parsed."
 }
