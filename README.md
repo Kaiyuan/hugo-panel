@@ -1,6 +1,6 @@
 # Hugo Panel
 
-一个用 Go 编写的 Hugo 站点管理后台。内容、主题、模块、媒体和构建都在一个界面里完成，不需要手写配置文件。前端使用 Vue 3 + PrimeVue，以静态资源形式由 Go 直接提供，**项目构建与运行都不依赖 Node.js**。
+一个用 Go 编写的 Hugo 站点管理后台。内容、主题、模块、媒体和构建都在一个界面里完成，不需要手写配置文件。前端使用 Vue 3 + PrimeVue，以静态资源形式由 Go 直接提供。
 
 ![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-embedded-003B57?logo=sqlite&logoColor=white)
@@ -11,7 +11,7 @@
 
 | 桌面端 | 移动端 |
 | --- | --- |
-| ![Hugo Panel 桌面端仪表盘](./docs/assets/images/hugo-panel-desktop.png) | <img src="./docs/assets/images/hugo-panel-phone.png" width="260" alt="Hugo Panel 移动端仪表盘"> |
+| ![Hugo Panel 桌面端仪表盘](./docs/assets/images/hugo-panel-desktop.png) | ![Hugo Panel 桌面端仪表盘](./docs/assets/images/hugo-panel-phone.png)|
 
 介绍页（纯静态，由 GitHub Pages 托管）：<https://kaiyuan.github.io/hugo-panel/>
 
