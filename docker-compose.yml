@@ -14,6 +14,13 @@ services:
     image: hugo-panel:local
     container_name: hugo-panel
     restart: unless-stopped
+    # If the panel cannot resolve a LAN hostname from inside the container,
+    # map it explicitly using the IP from `getent hosts <name>` on the host:
+    # extra_hosts:
+    #   - "nas.example.com:192.168.2.10"
+    # Or use the DNS server that resolves your LAN names:
+    # dns:
+    #   - 192.168.2.1
     ports:
       - "55530:8080"
     environment:

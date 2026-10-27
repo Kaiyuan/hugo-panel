@@ -20,6 +20,10 @@ func storageClient(insecure bool) *http.Client {
 
 func networkError(err error, service string) error {
 	msg := err.Error()
+	lower := strings.ToLower(msg)
+	if strings.Contains(lower, "lookup") && (strings.Contains(lower, "timeout") || strings.Contains(lower, "server misbehaving") || strings.Contains(lower, "no such host") || strings.Contains(lower, "temporary failure")) {
+		return errf("storage_unreachable", "DNS lookup failed inside the panel container: %v. Add the host to Docker with --add-host / extra_hosts, or configure a DNS server that can resolve it.", err)
+	}
 	if strings.Contains(msg, "x509") || strings.Contains(msg, "certificate") || strings.Contains(msg, "tls:") {
 		return errf("storage_unreachable", "%s TLS certificate could not be verified: %v. Enable “Allow self-signed certificates” for this storage if the server uses a private certificate.", service, err)
 	}

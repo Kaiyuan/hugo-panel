@@ -183,6 +183,42 @@ ${DATA_DIR}/locales/pt-BR.json
 
 所有存储库都提供统一的文件操作：新建文件夹、上传、预览、复制 URL / Markdown、移动、复制和删除。移动 / 复制可以在不同存储库之间进行；跨库操作会先下载到数据目录的临时文件再上传。
 
+### 容器内解析不到 NAS 主机名
+
+如果「测试连接」返回类似 `lookup nas.example.com on 127.0.0.11:53: i/o timeout`，说明 Docker 内置 DNS 没能解析该主机名，而不是账号或 WebDAV 配置错误。
+
+先在宿主机确认主机名对应的 IP：
+
+```bash
+getent hosts nas.example.com
+```
+
+然后把这个主机名映射进容器。`docker-compose.yml`：
+
+```yaml
+services:
+  hugo-panel:
+    extra_hosts:
+      - "nas.example.com:192.168.2.10"
+```
+
+或者让容器使用能解析该域名的 DNS（路由器、AdGuard、内网 DNS 等）：
+
+```yaml
+services:
+  hugo-panel:
+    dns:
+      - 192.168.2.1
+```
+
+`docker run` 对应参数是 `--add-host nas.example.com:192.168.2.10` 和 `--dns 192.168.2.1`。修改后执行 `docker compose up -d`，并在容器内验证：
+
+```bash
+docker exec -it hugo-panel getent hosts nas.example.com
+```
+
+如果域名本身解析正常，但 WebDAV 使用自签名 HTTPS 证书，还需要在存储库设置里打开「允许自签名证书」。
+
 <!-- ## 发布
 
 推送形如 `v1.2.3` 的 tag（或在 GitHub 上发布 Release，它会创建对应的 tag）会触发 [`.github/workflows/release.yml`](./.github/workflows/release.yml)，构建 `linux/amd64` 与 `linux/arm64` 镜像并推送到 Docker Hub：
