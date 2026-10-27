@@ -338,6 +338,8 @@
   "media.host_ip": "Host-IP (optional)",
   "media.host_ip_hint": "Statt {host} aufzulösen, direkt diese IP verwenden. TLS und der Host-Header nutzen weiterhin den Hostnamen. Hilfreich, wenn Docker-DNS den NAS nicht auflösen kann.",
   "media.host_ip_hint_empty": "Optional: direkt diese IP verwenden, statt den Hostnamen der URL aufzulösen. TLS und der Host-Header nutzen weiterhin den Hostnamen.",
+  "media.doh_url": "DNS über HTTPS (optional)",
+  "media.doh_url_hint": "Löst den Hostnamen des Speichers über diesen DoH-Endpunkt per HTTPS auf, wenn der Container normales DNS nicht erreichen kann. Verwenden Sie eine IP-basierte Adresse wie https://1.1.1.1/dns-query. Wird ignoriert, wenn Host IP gesetzt ist.",
   "nav.build": "Build",
   "nav.content": "Inhalte",
   "nav.dashboard": "Dashboard",

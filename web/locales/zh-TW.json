@@ -338,6 +338,8 @@
   "media.host_ip": "主機 IP（選填）",
   "media.host_ip_hint": "直接連線此 IP，而不是解析 {host}。TLS 和 Host 標頭仍使用原主機名稱。適用於 Docker 內 DNS 無法解析 NAS 的情況。",
   "media.host_ip_hint_empty": "選填：直接連線此 IP，而不是解析 URL 中的主機名稱。TLS 和 Host 標頭仍使用原主機名稱。",
+  "media.doh_url": "DNS over HTTPS（選填）",
+  "media.doh_url_hint": "當容器無法存取一般 DNS 時，透過此 DoH 端點（HTTPS）解析儲存主機名稱。建議使用以 IP 為基礎的位址，例如 https://1.1.1.1/dns-query。設定 Host IP 後此項不會生效。",
   "nav.build": "建置",
   "nav.content": "內容",
   "nav.dashboard": "儀表板",

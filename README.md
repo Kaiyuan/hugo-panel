@@ -197,6 +197,8 @@ getent hosts nas.example.com
 
 如果已经在 compose 里配置了 `dns:`（例如 `1.1.1.1`）仍然超时，说明容器到这些 DNS 的出站 53 端口被阻断；删掉 `dns:` 让 Docker 使用宿主机的解析器，或改成实际能解析该域名的内网 DNS。
 
+如果容器完全无法访问任何 53 端口（换成 `1.1.1.1`、`8.8.8.8` 也超时），可以在存储库设置里填写 **DNS over HTTPS**，例如 `https://1.1.1.1/dns-query`。面板会通过 443 端口解析存储服务器的主机名，再连接解析出的 IP，同时保留原 `Host` 头和 TLS SNI。请尽量使用基于 IP 的 DoH 地址，避免解析 DoH 服务器本身又依赖已经失效的 DNS；该地址必须能从容器直接访问。如果 `1.1.1.1` 不可达，可以换成其他可访问的 DoH 服务，例如阿里 DNS 的 `https://223.5.5.5/dns-query`。「主机 IP」和 DoH 同时填写时以「主机 IP」为准。
+
 也可以在 Docker 层解决。`docker-compose.yml`：
 
 ```yaml

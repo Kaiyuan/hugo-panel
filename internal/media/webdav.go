@@ -48,12 +48,12 @@ func newWebDAV(cfg Config) (*webdavBackend, error) {
 		username:   cfg.Username,
 		password:   cfg.Password,
 		publicBase: strings.TrimRight(cfg.PublicBase, "/"),
-		client:     webdavClient(cfg.Insecure, u.Hostname(), cfg.HostIP),
+		client:     webdavClient(cfg.Insecure, u.Hostname(), cfg.HostIP, cfg.DOHURL),
 	}, nil
 }
 
-func webdavClient(insecure bool, hostname, hostIP string) *http.Client {
-	client := storageClient(insecure, hostname, hostIP)
+func webdavClient(insecure bool, hostname, hostIP, dohURL string) *http.Client {
+	client := storageClient(insecure, hostname, hostIP, dohURL)
 	// Do not silently turn PROPFIND into GET on a 301/302. Report the redirect
 	// instead so the admin can enter the final URL.
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

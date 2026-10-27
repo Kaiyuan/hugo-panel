@@ -189,6 +189,7 @@ func TestConfigValidation(t *testing.T) {
 		{"no secret", Config{Name: "x", Type: "s3", Endpoint: "https://s3.example.com", Bucket: "b", AccessKey: "a"}},
 		{"bad webdav", Config{Name: "x", Type: "webdav", BaseURL: "ftp://x"}},
 		{"bad host ip", Config{Name: "x", Type: "webdav", BaseURL: "https://dav.example.com", HostIP: "nas.local"}},
+		{"bad doh url", Config{Name: "x", Type: "webdav", BaseURL: "https://dav.example.com", DOHURL: "http://1.1.1.1/dns-query"}},
 		{"bad public base", Config{Name: "x", Type: "local", Root: "/tmp", PublicBase: "javascript:alert(1)"}},
 	}
 	for _, tc := range cases {

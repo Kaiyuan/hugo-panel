@@ -109,7 +109,7 @@
         id: '', name: '', type: 'local', root: '', public_base: '',
         endpoint: '', region: 'us-east-1', bucket: '', access_key: '', secret_key: '',
         base_url: '', username: '', password: '', prefix: '', path_style: false,
-        insecure_skip_verify: false, host_ip: '', max_upload_mb: 512
+        insecure_skip_verify: false, host_ip: '', doh_url: '', max_upload_mb: 512
       });
       const libraryForm = reactive(blankLibrary());
       const libraryHasSecret = ref(false);
@@ -330,7 +330,7 @@
           access_key: library.access_key || '', secret_key: '', base_url: library.base_url || '',
           username: library.username || '', password: '', prefix: library.prefix || '',
           path_style: !!library.path_style, insecure_skip_verify: !!library.insecure_skip_verify,
-          host_ip: library.host_ip || '',
+          host_ip: library.host_ip || '', doh_url: library.doh_url || '',
           max_upload_mb: library.max_upload_mb || defaultMaxUpload.value
         });
         libraryHasSecret.value = !!library.has_secret;
@@ -610,6 +610,11 @@
                     ? t('media.host_ip_hint', { host: libraryHostname }, 'Dial this IP instead of resolving {host}. TLS and the Host header still use the hostname. Useful when Docker DNS cannot resolve the NAS.')
                     : t('media.host_ip_hint_empty', {}, 'Optional: dial this IP instead of resolving the URL hostname. TLS and the Host header still use the hostname.') }}
                 </small>
+              </label>
+              <label v-if="libraryForm.type !== 'local'" class="field">
+                <span>{{ t('media.doh_url', {}, 'DNS over HTTPS (optional)') }}</span>
+                <PInputText v-model="libraryForm.doh_url" placeholder="https://1.1.1.1/dns-query" class="mono-input" />
+                <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('media.doh_url_hint', {}, 'Resolve the storage hostname through this DoH endpoint over HTTPS when the container cannot reach normal DNS. Use an IP-based endpoint such as https://1.1.1.1/dns-query. Ignored when Host IP is set.') }}</small>
               </label>
               <div v-if="libraryForm.type !== 'local'" class="switch-row">
                 <div><strong>{{ t('media.insecure_tls', {}, 'Allow self-signed certificates') }}</strong><small>{{ t('media.insecure_tls_hint', {}, 'Only enable this for a server you trust. It disables TLS certificate verification for this storage.') }}</small></div>

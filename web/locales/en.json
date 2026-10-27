@@ -338,6 +338,8 @@
   "media.host_ip": "Host IP (optional)",
   "media.host_ip_hint": "Dial this IP instead of resolving {host}. TLS and the Host header still use the hostname. Useful when Docker DNS cannot resolve the NAS.",
   "media.host_ip_hint_empty": "Optional: dial this IP instead of resolving the URL hostname. TLS and the Host header still use the hostname.",
+  "media.doh_url": "DNS over HTTPS (optional)",
+  "media.doh_url_hint": "Resolve the storage hostname through this DoH endpoint over HTTPS when the container cannot reach normal DNS. Use an IP-based endpoint such as https://1.1.1.1/dns-query. Ignored when Host IP is set.",
   "nav.build": "Build",
   "nav.content": "Content",
   "nav.dashboard": "Dashboard",
