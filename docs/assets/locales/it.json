@@ -36,7 +36,7 @@
   "f.build.title": "Build",
   "f.build.body": "Esegui <code>hugo --gc --minify --cleanDestinationDir</code> dal pannello, conserva l'ultimo risultato e ricevi un'email se la build fallisce.",
   "f.i18n.title": "Lingue",
-  "f.i18n.body": "Cinese semplificato e tradizionale, inglese, francese, italiano, spagnolo, giapponese e coreano. Ogni lingua è un file caricato su richiesta e puoi aggiungere la tua.",
+  "f.i18n.body": "Cinese semplificato e tradizionale, inglese, francese, italiano, spagnolo, giapponese, coreano e tedesco. Ogni lingua è un file caricato su richiesta e puoi aggiungere la tua.",
   "f.dark.title": "Chiaro e nero assoluto",
   "f.dark.body": "Segue il sistema per impostazione predefinita. Il tema scuro usa uno sfondo nero puro <code>#000</code>: i pixel OLED restano spenti e la batteria dura di più.",
   "f.security.title": "Sicurezza",

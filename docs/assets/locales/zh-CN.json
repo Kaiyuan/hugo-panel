@@ -36,7 +36,7 @@
   "f.build.title": "构建",
   "f.build.body": "在面板里运行 <code>hugo --gc --minify --cleanDestinationDir</code>，保留最后一次结果，失败时可以邮件通知。",
   "f.i18n.title": "多语言",
-  "f.i18n.body": "内置简体中文、繁体中文、英语、法语、意大利语、西班牙语、日语、韩语。每种语言独立文件，按需加载，也能上传自己的译文。",
+  "f.i18n.body": "内置简体中文、繁体中文、英语、法语、意大利语、西班牙语、日语、韩语、德语。每种语言独立文件，按需加载，也能上传自己的译文。",
   "f.dark.title": "亮色与纯黑",
   "f.dark.body": "默认跟随系统。暗色主题使用纯黑 <code>#000</code> 背景，OLED 屏幕下像素不发光，也更省电。",
   "f.security.title": "安全",

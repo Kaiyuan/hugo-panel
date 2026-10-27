@@ -36,7 +36,7 @@
   "f.build.title": "Compilaciones",
   "f.build.body": "Ejecuta <code>hugo --gc --minify --cleanDestinationDir</code> desde el panel, conserva el último resultado y recibe un correo si falla.",
   "f.i18n.title": "Idiomas",
-  "f.i18n.body": "Chino simplificado y tradicional, inglés, francés, italiano, español, japonés y coreano. Cada idioma es un archivo que se carga bajo demanda, y puedes añadir el tuyo.",
+  "f.i18n.body": "Chino simplificado y tradicional, inglés, francés, italiano, español, japonés, coreano y alemán. Cada idioma es un archivo que se carga bajo demanda, y puedes añadir el tuyo.",
   "f.dark.title": "Claro y negro puro",
   "f.dark.body": "Sigue el sistema por defecto. El tema oscuro usa un fondo negro puro <code>#000</code>: los píxeles OLED quedan apagados y la batería dura más.",
   "f.security.title": "Seguridad",

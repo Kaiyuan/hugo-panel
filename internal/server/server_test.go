@@ -102,8 +102,8 @@ func TestSetupLoginCSRFAndContentFlow(t *testing.T) {
 		t.Fatalf("initial state: %d %#v", res.StatusCode, state)
 	}
 	languages, _ := state["languages"].([]any)
-	if len(languages) != 8 {
-		t.Fatalf("expected 8 languages, got %d", len(languages))
+	if len(languages) != 9 {
+		t.Fatalf("expected 9 languages, got %d", len(languages))
 	}
 	firstLang, _ := languages[0].(map[string]any)
 	if firstLang["code"] != "en" || firstLang["nativeName"] != "English" {

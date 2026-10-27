@@ -27,7 +27,7 @@ type Manager struct {
 
 var codeRe = regexp.MustCompile(`^[A-Za-z]{2,3}([_-][A-Za-z0-9]{2,8})*$`)
 
-var builtinOrder = []string{"en", "zh-CN", "zh-TW", "fr", "it", "es", "ja", "ko"}
+var builtinOrder = []string{"en", "zh-CN", "zh-TW", "fr", "it", "es", "ja", "ko", "de"}
 
 func New(embedded fs.FS, dataDir string) *Manager {
 	return &Manager{embedded: embedded, customDir: filepath.Join(dataDir, "locales")}

@@ -3,7 +3,7 @@
   'use strict';
 
   var DEFAULT_LANG = 'zh-CN';
-  var SUPPORTED = window.__HP_DOCS_SUPPORTED__ || ['zh-CN', 'zh-TW', 'en', 'fr', 'it', 'es', 'ja', 'ko'];
+  var SUPPORTED = window.__HP_DOCS_SUPPORTED__ || ['zh-CN', 'zh-TW', 'en', 'fr', 'it', 'es', 'ja', 'ko', 'de'];
   var LANG_KEY = 'hp-docs-lang';
   var STORAGE_KEY = 'hp-docs-theme';
 

@@ -27,7 +27,7 @@ func TestBuiltinLanguagesAreComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"en", "zh-CN", "zh-TW", "fr", "it", "es", "ja", "ko"}
+	want := []string{"en", "zh-CN", "zh-TW", "fr", "it", "es", "ja", "ko", "de"}
 	if len(languages) != len(want) {
 		t.Fatalf("got %d languages: %#v", len(languages), languages)
 	}
@@ -76,9 +76,9 @@ func TestBuiltinLanguagesAreComplete(t *testing.T) {
 
 func TestCustomTranslationLifecycle(t *testing.T) {
 	m := newTestManager(t)
-	err := m.AddCustom("de", "Deutsch", map[string]string{
-		"nav.dashboard": "Übersicht",
-		"common.cancel": "Abbrechen",
+	err := m.AddCustom("nl", "Nederlands", map[string]string{
+		"nav.dashboard": "Overzicht",
+		"common.cancel": "Annuleren",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -89,9 +89,9 @@ func TestCustomTranslationLifecycle(t *testing.T) {
 	}
 	found := false
 	for _, lang := range languages {
-		if lang.Code == "de" {
+		if lang.Code == "nl" {
 			found = true
-			if lang.Builtin || lang.NativeName != "Deutsch" {
+			if lang.Builtin || lang.NativeName != "Nederlands" {
 				t.Fatalf("custom language: %#v", lang)
 			}
 		}
@@ -99,23 +99,23 @@ func TestCustomTranslationLifecycle(t *testing.T) {
 	if !found {
 		t.Fatal("custom language not listed")
 	}
-	messages, err := m.Messages("de")
+	messages, err := m.Messages("nl")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if messages["nav.dashboard"] != "Übersicht" || messages["common.cancel"] != "Abbrechen" {
+	if messages["nav.dashboard"] != "Overzicht" || messages["common.cancel"] != "Annuleren" {
 		t.Fatalf("custom messages: %#v", messages)
 	}
 	if messages["nav.content"] == "" {
 		t.Fatal("missing keys should fall back to English")
 	}
-	if !m.IsBuiltin("de") == false {
-		t.Fatal("de should not be builtin")
+	if !m.IsBuiltin("nl") == false {
+		t.Fatal("nl should not be builtin")
 	}
-	if err := m.DeleteCustom("de"); err != nil {
+	if err := m.DeleteCustom("nl"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.Messages("de"); err != nil {
+	if _, err := m.Messages("nl"); err != nil {
 		t.Fatalf("fallback after deleting custom locale failed: %v", err)
 	}
 }
@@ -125,10 +125,10 @@ func TestInvalidCustomTranslation(t *testing.T) {
 	if err := m.AddCustom("../evil", "Evil", map[string]string{"a": "b"}); err == nil {
 		t.Fatal("expected invalid code error")
 	}
-	if err := m.AddCustom("de", "", map[string]string{"a": "b"}); err == nil {
+	if err := m.AddCustom("nl", "", map[string]string{"a": "b"}); err == nil {
 		t.Fatal("expected invalid name error")
 	}
-	if err := m.AddCustom("de", "Deutsch", map[string]string{}); err == nil {
+	if err := m.AddCustom("nl", "Nederlands", map[string]string{}); err == nil {
 		t.Fatal("expected empty translation error")
 	}
 }
