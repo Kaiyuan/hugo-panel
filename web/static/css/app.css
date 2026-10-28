@@ -668,7 +668,7 @@ small, .text-sm { font-size: 14px; }
   min-height: 480px; border: 0; background: transparent; padding: 8px 4px 22px;
   display: flex; flex-direction: column; gap: 2px;
 }
-.live-block { padding: 0; border-radius: 6px; cursor: text; transition: background .12s ease, box-shadow .12s ease; }
+.live-block { margin-bottom: 1em; padding: 0; border-radius: 6px; cursor: text; transition: background .12s ease, box-shadow .12s ease; }
 .live-block:hover { background: color-mix(in srgb, var(--card) 45%, transparent); }
 .live-block.is-editing, .live-block.is-editing:hover {
   background: var(--bg-elevated); box-shadow: inset 0 0 0 1px var(--border-strong), 0 1px 2px rgba(0, 0, 0, .04);
