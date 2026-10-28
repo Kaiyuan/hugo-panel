@@ -642,8 +642,12 @@
 
   components.MediaPicker = {
     name: 'MediaPicker',
-    props: { visible: { type: Boolean, default: false } },
-    emits: ['update:visible', 'insert'],
+    props: {
+      visible: { type: Boolean, default: false },
+      imagesOnly: { type: Boolean, default: false },
+      mode: { type: String, default: 'insert' }
+    },
+    emits: ['update:visible', 'insert', 'select'],
     setup(props, { emit }) {
       const libraries = ref([]);
       const libraryId = ref(localStorage.getItem(LIBRARY_KEY) || 'local');
@@ -653,6 +657,8 @@
       const error = ref('');
       const selected = ref(null);
 
+      const choosing = computed(() => props.mode === 'choose');
+      const imagesOnly = computed(() => props.imagesOnly);
       const crumbs = computed(() => {
         const out = [{ label: t('media.root', {}, 'Root'), path: '' }];
         let acc = '';
@@ -663,7 +669,7 @@
         return out;
       });
       const folders = computed(() => entries.value.filter((e) => e.is_dir));
-      const files = computed(() => entries.value.filter((e) => !e.is_dir));
+      const files = computed(() => entries.value.filter((e) => !e.is_dir && (!props.imagesOnly || e.kind === 'image')));
       const currentLibrary = computed(() => libraries.value.find((l) => l.id === libraryId.value));
 
       async function loadLibraries() {
@@ -688,7 +694,15 @@
       function goCrumb(crumb) { path.value = crumb.path; load(); }
       function selectLibrary(id) { libraryId.value = id; try { localStorage.setItem(LIBRARY_KEY, id); } catch (e) {} path.value = ''; load(); }
       function selectFile(entry) { selected.value = entry; }
+      function choose(entry) {
+        const file = entry || selected.value;
+        if (!file) return;
+        if (props.imagesOnly && file.kind !== 'image') return;
+        emit('select', file);
+        close();
+      }
       function insert(kind) {
+        if (choosing.value) { choose(); return; }
         if (!selected.value) return;
         const entry = selected.value;
         let text = entry.url;
@@ -696,6 +710,10 @@
         if (kind === 'link') text = '[' + entry.name + '](' + entry.url + ')';
         emit('insert', { text, entry, kind });
         close();
+      }
+      function activate(file) {
+        if (choosing.value) choose(file);
+        else insert(file.kind === 'image' ? 'markdown' : 'link');
       }
 
       watch(() => props.visible, (visible) => {
@@ -705,12 +723,13 @@
       });
 
       return {
-        libraries, libraryId, path, entries, loading, error, selected, crumbs, folders, files, currentLibrary,
-        close, openFolder, goCrumb, selectLibrary, selectFile, insert, kindIcon, kindLabel, formatBytes: HP.formatBytes, t
+        libraries, libraryId, path, entries, loading, error, selected, crumbs, folders, files, currentLibrary, choosing, imagesOnly,
+        close, openFolder, goCrumb, selectLibrary, selectFile, insert, choose, activate,
+        kindIcon, kindLabel, formatBytes: HP.formatBytes, t
       };
     },
     template: `
-      <PDialog :visible="visible" @update:visible="close" modal :header="t('media.insert_media', {}, 'Insert media')" :style="{ width: '58rem', maxWidth: '96vw' }" class="media-picker">
+      <PDialog :visible="visible" @update:visible="close" modal :header="choosing ? t('media.choose_image', {}, 'Choose an image') : t('media.insert_media', {}, 'Insert media')" :style="{ width: '58rem', maxWidth: '96vw' }" class="media-picker">
         <div class="media-picker-toolbar">
           <PSelect :modelValue="libraryId" :options="libraries" optionLabel="name" optionValue="id" @update:modelValue="selectLibrary" class="media-library-select" />
           <div class="media-breadcrumb">
@@ -722,9 +741,9 @@
         </div>
         <PMessage v-if="error" severity="error" :closable="false">{{ error }}</PMessage>
         <div v-if="loading" class="media-picker-loading"><PProgressSpinner strokeWidth="3" /></div>
-        <div v-else-if="entries.length === 0" class="media-picker-empty">
+        <div v-else-if="entries.length === 0 || (!files.length && !folders.length)" class="media-picker-empty">
           <i class="pi pi-folder-open"></i>
-          <span>{{ t('media.empty_title', {}, 'This folder is empty') }}</span>
+          <span>{{ imagesOnly ? t('media.no_images', {}, 'No images in this folder') : t('media.empty_title', {}, 'This folder is empty') }}</span>
         </div>
         <template v-else>
           <div v-if="folders.length" class="media-folders compact">
@@ -732,8 +751,11 @@
               <i class="pi pi-folder"></i><span>{{ folder.name }}</span><i class="pi pi-angle-right"></i>
             </button>
           </div>
-          <div class="media-picker-grid">
-            <button v-for="file in files" :key="file.path" class="media-pick-item" :class="{ selected: selected && selected.path === file.path }" @click="selectFile(file)" @dblclick="selectFile(file); insert(file.kind === 'image' ? 'markdown' : 'link')">
+          <div v-if="!files.length" class="media-picker-empty compact">
+            <span>{{ imagesOnly ? t('media.no_images', {}, 'No images in this folder') : t('media.empty_title', {}, 'This folder is empty') }}</span>
+          </div>
+          <div v-else class="media-picker-grid">
+            <button v-for="file in files" :key="file.path" class="media-pick-item" :class="{ selected: selected && selected.path === file.path }" @click="selectFile(file)" @dblclick="activate(file)">
               <span class="media-pick-thumb">
                 <img v-if="file.kind === 'image'" :src="file.preview_url" :alt="file.name" loading="lazy" />
                 <i v-else :class="kindIcon(file.kind)"></i>
@@ -744,11 +766,16 @@
           </div>
         </template>
         <template #footer>
-          <span class="media-picker-selected">{{ selected ? selected.path : t('media.pick_hint', {}, 'Choose a file to insert.') }}</span>
+          <span class="media-picker-selected">{{ selected ? selected.path : (choosing ? t('media.pick_image_hint', {}, 'Choose an image.') : t('media.pick_hint', {}, 'Choose a file to insert.')) }}</span>
           <PButton text :label="t('common.cancel', {}, 'Cancel')" @click="close" />
-          <PButton v-if="selected && selected.kind === 'image'" text icon="pi pi-code" :label="t('media.insert_markdown', {}, 'Insert Markdown')" @click="insert('markdown')" />
-          <PButton v-if="selected && selected.kind !== 'image'" text icon="pi pi-link" :label="t('media.insert_link', {}, 'Insert link')" @click="insert('link')" />
-          <PButton v-if="selected" icon="pi pi-link" :label="t('media.insert_url', {}, 'Insert URL')" @click="insert('url')" />
+          <template v-if="choosing">
+            <PButton icon="pi pi-check" :label="t('media.use_image', {}, 'Use this image')" :disabled="!selected || selected.kind !== 'image'" @click="choose()" />
+          </template>
+          <template v-else>
+            <PButton v-if="selected && selected.kind === 'image'" text icon="pi pi-code" :label="t('media.insert_markdown', {}, 'Insert Markdown')" @click="insert('markdown')" />
+            <PButton v-if="selected && selected.kind !== 'image'" text icon="pi pi-link" :label="t('media.insert_link', {}, 'Insert link')" @click="insert('link')" />
+            <PButton v-if="selected" icon="pi pi-link" :label="t('media.insert_url', {}, 'Insert URL')" @click="insert('url')" />
+          </template>
         </template>
       </PDialog>
     `
