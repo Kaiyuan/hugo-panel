@@ -339,7 +339,7 @@
   "media.host_ip_hint": "Se connecter à cette IP au lieu de résoudre {host}. TLS et l’en-tête Host utilisent toujours le nom d’hôte. Utile lorsque le DNS Docker ne peut pas résoudre le NAS.",
   "media.host_ip_hint_empty": "Facultatif : se connecter à cette IP au lieu de résoudre le nom d’hôte de l’URL. TLS et l’en-tête Host utilisent toujours le nom d’hôte.",
   "media.doh_url": "DNS over HTTPS (facultatif)",
-  "media.doh_url_hint": "Résout le nom d’hôte du stockage via ce point de terminaison DoH en HTTPS lorsque le conteneur ne peut pas joindre le DNS normal. Utilisez une adresse basée sur IP, par exemple https://1.1.1.1/dns-query. Ignoré lorsque Host IP est défini.",
+  "media.doh_url_hint": "Résout le nom d’hôte du stockage via ce point de terminaison DoH en HTTPS lorsque le conteneur ne peut pas joindre le DNS normal. Utilisez une adresse basée sur IP, par exemple https://1.1.1.1/dns-query. Laissez vide pour réessayer automatiquement avec un résolveur DoH public si le DNS normal échoue. Ignoré lorsque Host IP est défini.",
   "nav.build": "Compilation",
   "nav.content": "Contenu",
   "nav.dashboard": "Tableau de bord",

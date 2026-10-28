@@ -339,7 +339,7 @@
   "media.host_ip_hint": "{host}을(를) 확인하지 않고 이 IP로 연결합니다. TLS와 Host 헤더는 계속 호스트 이름을 사용합니다. Docker DNS가 NAS를 확인하지 못할 때 유용합니다.",
   "media.host_ip_hint_empty": "선택 사항: URL 호스트 이름을 확인하지 않고 이 IP로 연결합니다. TLS와 Host 헤더는 계속 호스트 이름을 사용합니다.",
   "media.doh_url": "DNS over HTTPS(선택 사항)",
-  "media.doh_url_hint": "컨테이너가 일반 DNS에 연결할 수 없을 때 이 DoH 엔드포인트(HTTPS)를 통해 스토리지 호스트 이름을 확인합니다. https://1.1.1.1/dns-query처럼 IP 기반 URL을 사용하세요. Host IP가 설정되면 무시됩니다.",
+  "media.doh_url_hint": "컨테이너가 일반 DNS에 연결할 수 없을 때 이 DoH 엔드포인트(HTTPS)를 통해 스토리지 호스트 이름을 확인합니다. https://1.1.1.1/dns-query처럼 IP 기반 URL을 사용하세요. 비워 두면 일반 DNS가 실패할 때 공용 DoH 확인자로 자동 재시도합니다. Host IP가 설정되면 무시됩니다.",
   "nav.build": "빌드",
   "nav.content": "콘텐츠",
   "nav.dashboard": "대시보드",

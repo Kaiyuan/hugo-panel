@@ -339,7 +339,7 @@
   "media.host_ip_hint": "{host} を名前解決せず、この IP に接続します。TLS と Host ヘッダーは引き続きホスト名を使用します。Docker 内の DNS で NAS を解決できない場合に有効です。",
   "media.host_ip_hint_empty": "任意：URL のホスト名を名前解決せず、この IP に接続します。TLS と Host ヘッダーは引き続きホスト名を使用します。",
   "media.doh_url": "DNS over HTTPS（任意）",
-  "media.doh_url_hint": "コンテナが通常の DNS に到達できない場合、この DoH エンドポイント（HTTPS）でストレージのホスト名を解決します。https://1.1.1.1/dns-query のような IP ベースの URL を使用してください。Host IP が設定されている場合は無視されます。",
+  "media.doh_url_hint": "コンテナが通常の DNS に到達できない場合、この DoH エンドポイント（HTTPS）でストレージのホスト名を解決します。https://1.1.1.1/dns-query のような IP ベースの URL を使用してください。空欄の場合、通常の DNS に失敗すると公共 DoH リゾルバーで自動的に再試行します。Host IP が設定されている場合は無視されます。",
   "nav.build": "ビルド",
   "nav.content": "コンテンツ",
   "nav.dashboard": "ダッシュボード",

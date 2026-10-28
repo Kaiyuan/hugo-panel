@@ -199,6 +199,8 @@ getent hosts nas.example.com
 
 如果容器完全无法访问任何 53 端口（换成 `1.1.1.1`、`8.8.8.8` 也超时），可以在存储库设置里填写 **DNS over HTTPS**，例如 `https://1.1.1.1/dns-query`。面板会通过 443 端口解析存储服务器的主机名，再连接解析出的 IP，同时保留原 `Host` 头和 TLS SNI。请尽量使用基于 IP 的 DoH 地址，避免解析 DoH 服务器本身又依赖已经失效的 DNS；该地址必须能从容器直接访问。如果 `1.1.1.1` 不可达，可以换成其他可访问的 DoH 服务，例如阿里 DNS 的 `https://223.5.5.5/dns-query`。「主机 IP」和 DoH 同时填写时以「主机 IP」为准。
 
+即使不填写 DoH 地址，普通 DNS 失败后面板也会自动尝试公共 DoH 服务（Cloudflare、阿里 DNS、Google），所以通常不需要额外配置。自动回退只针对看起来是公网的域名；单段主机名（如 Docker 服务名）和 `.local`、`.lan`、`.internal` 等私有后缀仍交给系统 DNS。如果不想把域名发送给公共解析服务，可以给该存储库填写自己的 DoH 地址，或在容器环境变量中设置 `MEDIA_DOH_URL=off` 关闭自动回退；也可以用逗号分隔的地址列表覆盖默认服务（需要在 `docker-compose.yml` 的 `environment` 中透传该变量）。
+
 也可以在 Docker 层解决。`docker-compose.yml`：
 
 ```yaml

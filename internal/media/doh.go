@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -37,11 +38,73 @@ type dnsCacheEntry struct {
 }
 
 const (
-	dohQueryTimeout = 10 * time.Second
-	dohMinTTL       = 10 * time.Second
-	dohMaxTTL       = 10 * time.Minute
-	dohMaxCNAMEHops = 8
+	dohQueryTimeout    = 10 * time.Second
+	dohFallbackTimeout = 5 * time.Second
+	dohMinTTL          = 10 * time.Second
+	dohMaxTTL          = 10 * time.Minute
+	dohMaxCNAMEHops    = 8
 )
+
+// defaultDOHURLs are tried, in order, when the container's normal resolver
+// fails and the library has no explicit DoH URL. They are all IP-based so
+// resolving the resolver itself does not need working DNS.
+var defaultDOHURLs = []string{
+	"https://1.1.1.1/dns-query",
+	"https://223.5.5.5/dns-query",
+	"https://8.8.8.8/dns-query",
+}
+
+// automaticDOHURLs returns the endpoints used for the automatic fallback.
+// MEDIA_DOH_URL overrides the list (comma or space separated); "off", "none",
+// "false" or "0" disables the fallback entirely.
+func automaticDOHURLs() []string {
+	raw := strings.TrimSpace(os.Getenv("MEDIA_DOH_URL"))
+	if raw == "" {
+		return defaultDOHURLs
+	}
+	switch strings.ToLower(raw) {
+	case "off", "none", "false", "0":
+		return nil
+	}
+	var urls []string
+	for _, part := range strings.FieldsFunc(raw, func(r rune) bool {
+		return r == ',' || r == ';' || r == ' ' || r == '\t' || r == '\n'
+	}) {
+		if part = strings.TrimSpace(part); part != "" {
+			urls = append(urls, part)
+		}
+	}
+	return urls
+}
+
+// resolveWithFallback tries each automatic endpoint until one answers.
+func resolveWithFallback(ctx context.Context, host string) ([]string, error) {
+	urls := automaticDOHURLs()
+	if len(urls) == 0 {
+		return nil, fmt.Errorf("lookup %s via DNS over HTTPS: automatic fallback is disabled", host)
+	}
+	var lastErr error
+	for _, raw := range urls {
+		resolver, err := dohResolverFor(raw)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		attemptCtx, cancel := context.WithTimeout(ctx, dohFallbackTimeout)
+		addrs, err := resolver.Resolve(attemptCtx, host)
+		cancel()
+		if err == nil && len(addrs) > 0 {
+			return addrs, nil
+		}
+		if err != nil {
+			lastErr = err
+		}
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("no addresses returned")
+	}
+	return nil, fmt.Errorf("lookup %s via DNS over HTTPS: %w", host, lastErr)
+}
 
 const (
 	dnsTypeA     uint16 = 1

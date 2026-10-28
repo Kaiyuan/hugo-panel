@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -242,6 +243,105 @@ func TestSharedDOHResolverReusesEndpoint(t *testing.T) {
 	}
 	if _, err := sharedDOHResolver("http://1.1.1.1/dns-query"); err == nil {
 		t.Fatal("expected plain http DoH endpoints to be rejected")
+	}
+}
+
+func TestAutomaticDOHURLs(t *testing.T) {
+	t.Setenv("MEDIA_DOH_URL", "")
+	if got := automaticDOHURLs(); len(got) != len(defaultDOHURLs) {
+		t.Fatalf("default DoH urls = %v", got)
+	}
+	t.Setenv("MEDIA_DOH_URL", "off")
+	if got := automaticDOHURLs(); got != nil {
+		t.Fatalf("disabled DoH urls = %v", got)
+	}
+	t.Setenv("MEDIA_DOH_URL", "https://a.example/dns-query, https://b.example/dns-query")
+	got := automaticDOHURLs()
+	if len(got) != 2 || got[0] != "https://a.example/dns-query" || got[1] != "https://b.example/dns-query" {
+		t.Fatalf("DoH urls = %v", got)
+	}
+}
+
+func TestLocalHostname(t *testing.T) {
+	for _, host := range []string{"minio", "nas.local", "printer.lan", "box.internal", "nas.localdomain"} {
+		if !localHostname(host) {
+			t.Errorf("%s should be treated as a private name", host)
+		}
+	}
+	for _, host := range []string{"dav.example.com", "kynas49.ooio.win", "bucket.s3.example.com"} {
+		if localHostname(host) {
+			t.Errorf("%s should not be treated as a private name", host)
+		}
+	}
+}
+
+func TestResolveWithFallbackUsesNextEndpoint(t *testing.T) {
+	srv, resolver := testDOHServer(t, func(qname string, qtype uint16) []testDNSAnswer {
+		if qtype != dnsTypeA {
+			return nil
+		}
+		return []testDNSAnswer{{name: qname, typ: dnsTypeA, ttl: 300, data: net.IPv4(203, 0, 113, 11).To4()}}
+	})
+	t.Setenv("MEDIA_DOH_URL", "http://127.0.0.1:1/dns-query,"+srv.URL+"/dns-query")
+	previous := dohResolverFor
+	dohResolverFor = func(rawURL string) (*dnsResolver, error) {
+		if strings.HasPrefix(rawURL, "https://") {
+			resolver.url = rawURL
+			return resolver, nil
+		}
+		return newDOHResolver(rawURL)
+	}
+	defer func() { dohResolverFor = previous }()
+
+	addrs, err := resolveWithFallback(context.Background(), "fallback.example.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(addrs) != 1 || addrs[0] != "203.0.113.11" {
+		t.Fatalf("addrs = %v", addrs)
+	}
+}
+
+func TestStorageClientAutomaticDOHFallback(t *testing.T) {
+	srv, resolver := testDOHServer(t, func(qname string, qtype uint16) []testDNSAnswer {
+		if qtype != dnsTypeA {
+			return nil
+		}
+		return []testDNSAnswer{{name: qname, typ: dnsTypeA, ttl: 300, data: net.IPv4(127, 0, 0, 1).To4()}}
+	})
+	t.Setenv("MEDIA_DOH_URL", srv.URL+"/dns-query")
+	previous := dohResolverFor
+	dohResolverFor = func(rawURL string) (*dnsResolver, error) {
+		resolver.url = rawURL
+		return resolver, nil
+	}
+	defer func() { dohResolverFor = previous }()
+
+	var seenHost string
+	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenHost = r.Host
+		w.WriteHeader(http.StatusMultiStatus)
+	}))
+	defer target.Close()
+	targetURL, _ := url.Parse(target.URL)
+
+	host := "auto-fallback.example.invalid"
+	// Simulate a previous request whose system lookup timed out: the next
+	// request must go straight to DoH instead of waiting for DNS again.
+	markDNSFailure(host)
+	cfg := Config{
+		ID: "dav", Name: "dav", Type: "webdav",
+		BaseURL: "http://" + host + ":" + targetURL.Port() + "/dav",
+	}
+	b, err := newWebDAV(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := b.Test(context.Background()); err != nil {
+		t.Fatalf("automatic DoH fallback test: %v", err)
+	}
+	if seenHost != host+":"+targetURL.Port() {
+		t.Fatalf("Host header = %q, want the original hostname", seenHost)
 	}
 }
 
