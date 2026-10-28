@@ -386,7 +386,7 @@
   "nav.settings": "Paramètres",
   "nav.themes": "Thèmes",
   "plugins.add": "Ajouter une extension",
-  "plugins.add_hint": "Entrez un chemin de module Go. Le panneau l'ajoute à module.imports et exécute Hugo Mod Tidy.",
+  "plugins.add_hint": "Entrez un chemin de module Go. Le panneau l'ajoute à module.imports et exécute hugo mod tidy.",
   "plugins.added": "Plugin ajouté",
   "plugins.config_import": "importation du module de configuration",
   "plugins.docs": "Lire la documentation des modules Hugo",

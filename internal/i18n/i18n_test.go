@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/Kaiyuan/hugo-panel/web"
@@ -69,6 +70,46 @@ func TestBuiltinLanguagesAreComplete(t *testing.T) {
 					t.Errorf("%s key %s placeholder mismatch: %q vs %q", lang.Code, key, wantPlaceholders, gotPlaceholders)
 					break
 				}
+			}
+		}
+	}
+}
+
+func TestHugoBrandNameIsNotLocalized(t *testing.T) {
+	m := newTestManager(t)
+	languages, err := m.Languages()
+	if err != nil {
+		t.Fatal(err)
+	}
+	localizedForms := []string{"雨果", "ヒューゴ", "휴고", "Ugo"}
+	brandKeys := []string{
+		"content.tags_hint",
+		"dashboard.default_site",
+		"dashboard.hugo_version",
+		"plugins.hugo_module",
+		"settings.hugo",
+		"settings.hugo_version",
+	}
+	for _, lang := range languages {
+		messages, err := m.Messages(lang.Code)
+		if err != nil {
+			t.Fatalf("%s: %v", lang.Code, err)
+		}
+		for key, value := range messages {
+			for _, form := range localizedForms {
+				if strings.Contains(value, form) {
+					t.Errorf("%s key %s translates Hugo as %q: %q", lang.Code, key, form, value)
+				}
+			}
+		}
+		for _, key := range brandKeys {
+			if !strings.Contains(messages[key], "Hugo") {
+				t.Errorf("%s key %s must keep the brand name Hugo: %q", lang.Code, key, messages[key])
+			}
+		}
+		for _, key := range []string{"dashboard.hugo_version", "settings.hugo_version"} {
+			if messages[key] != "Hugo" {
+				t.Errorf("%s key %s must be exactly %q: %q", lang.Code, key, "Hugo", messages[key])
 			}
 		}
 	}
