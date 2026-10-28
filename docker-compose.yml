@@ -17,10 +17,12 @@ services:
     # If the panel cannot resolve a LAN hostname from inside the container,
     # map it explicitly using the IP from `getent hosts <name>` on the host:
     # extra_hosts:
-    #   - "nas.example.com:192.168.2.10"
+    #   - "nas49.hosts.com:192.168.2.115"
     # Or use the DNS server that resolves your LAN names:
-    # dns:
-    #   - 192.168.2.1
+    #dns:
+    #  - 1.1.1.1
+    #  - 8.8.4.4
+    #  - 114.114.115.115
     ports:
       - "55530:8080"
     environment:
