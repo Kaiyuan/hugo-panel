@@ -287,6 +287,7 @@
 <pre id="snippet-run"><code>docker run -d \
   --name hugo-panel \
   --restart unless-stopped \
+  --network bridge \
   -p 8080:8080 \
   -v /srv/hugo-panel/data:/app/hugo-panel/data \
   -v /srv/my-hugo-site:/app/hugo \
@@ -301,16 +302,29 @@
               <button class="copy-btn" type="button" data-copy="snippet-compose" data-i18n="start.copy">复制</button>
             </div>
 <pre id="snippet-compose"><code>services:
-  hugo-panel:
-    image: kaiyuan/hugo-panel:latest
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      PUBLIC_URL: https://panel.example.com
-    volumes:
-      - ./data:/app/hugo-panel/data
-      - ./hugo:/app/hugo</code></pre>
+    hugo-panel:
+        # Build the image locally from this repository instead of pulling a remote image.
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                COMMIT: ${COMMIT:-none}
+                BUILD_TIME: ${BUILD_TIME:-unknown}
+        image: kaiyuan/hugo-panel:latest
+        container_name: hugo-panel
+        restart: unless-stopped
+        ports:
+            - "8080:8080"
+        network_mode: bridge
+        environment:
+            TZ: Asia/Shanghai
+            HUGO_DIR: /app/hugo
+            # Public URL of this panel, used for password-reset links.
+            PUBLIC_URL: http://localhost:8080
+        volumes:
+            # Host paths are configured in .env (defaults keep them next to this file).
+            - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
+            - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"</code></pre>
           </div>
         </div>
 

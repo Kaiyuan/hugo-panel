@@ -37,6 +37,7 @@
 docker run -d \
   --name hugo-panel \
   --restart unless-stopped \
+  --network bridge \
   -p 8080:8080 \
   -v /srv/hugo-panel/data:/app/hugo-panel/data \
   -v /srv/my-hugo-site:/app/hugo \
@@ -57,6 +58,7 @@ services:
     build: .
     image: hugo-panel:local
     restart: unless-stopped
+    network_mode: bridge
     ports:
       - "8080:8080"
     environment:
@@ -65,6 +67,33 @@ services:
     volumes:
       - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
       - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
+```
+通过拉取 Docker 创建
+```yaml
+services:
+    hugo-panel:
+        # Build the image locally from this repository instead of pulling a remote image.
+        build:
+            context: .
+            dockerfile: Dockerfile
+            args:
+                COMMIT: ${COMMIT:-none}
+                BUILD_TIME: ${BUILD_TIME:-unknown}
+        image: kaiyuan/hugo-panel:latest
+        container_name: hugo-panel
+        restart: unless-stopped
+        ports:
+            - "8080:8080"
+        network_mode: bridge
+        environment:
+            TZ: Asia/Shanghai
+            HUGO_DIR: /app/hugo
+            # Public URL of this panel, used for password-reset links.
+            PUBLIC_URL: http://localhost:8080
+        volumes:
+            # Host paths are configured in .env (defaults keep them next to this file).
+            - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
+            - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
 ```
 
 挂载目录通过 `.env` 配置，未设置时使用默认相对路径：
