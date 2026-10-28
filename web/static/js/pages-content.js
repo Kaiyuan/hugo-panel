@@ -299,6 +299,16 @@
       const mediaPickerVisible = ref(false);
       const coverPickerVisible = ref(false);
       const translating = ref(false);
+      const dirDialogVisible = ref(false);
+      const newDirName = ref('');
+      const creatingDir = ref(false);
+      const aiVisible = ref(false);
+      const aiTask = ref('polish');
+      const aiInstruction = ref('');
+      const aiResult = ref('');
+      const aiRunning = ref(false);
+      const aiError = ref('');
+      const aiSelection = ref(null);
       const directories = ref([]);
       const dirValue = ref('');
       const nameValue = ref('');
@@ -389,6 +399,123 @@
         if (!urlTouched.value) refreshAutoUrl();
       }
       watch([dirValue, nameValue], () => { syncPath(); refreshAutoUrl(); });
+
+      function openDirectoryDialog() {
+        newDirName.value = '';
+        dirDialogVisible.value = true;
+      }
+      async function createDirectory() {
+        const name = String(newDirName.value || '').trim().replace(/^\/+|\/+$/g, '');
+        if (!name) {
+          HP.toast('error', t('content.directory_name_required', {}, 'Enter a folder name'));
+          return;
+        }
+        creatingDir.value = true;
+        try {
+          const res = await HP.api('/content/directory', { method: 'POST', body: { path: name } });
+          const dir = res && res.path ? res.path : name;
+          const meta = await HP.api('/content/meta').catch(() => null);
+          if (meta && Array.isArray(meta.directories)) {
+            directories.value = meta.directories;
+          } else if (directories.value.indexOf(dir) < 0) {
+            directories.value = directories.value.concat([dir]);
+          }
+          dirValue.value = dir;
+          dirDialogVisible.value = false;
+          HP.toast('success', t('content.directory_created', {}, 'Folder created'), dir);
+        } catch (e) {
+          HP.notifyError(e);
+        } finally {
+          creatingDir.value = false;
+        }
+      }
+
+      const aiTaskOptions = computed(() => [
+        { label: t('content.ai_polish', {}, 'Polish writing'), value: 'polish' },
+        { label: t('content.ai_continue', {}, 'Continue writing'), value: 'continue' },
+        { label: t('content.ai_summary', {}, 'Generate description'), value: 'summary' },
+        { label: t('content.ai_custom', {}, 'Custom instruction'), value: 'custom' }
+      ]);
+      const aiScopeHint = computed(() => aiSelection.value
+        ? t('content.ai_selected', {}, 'Applies to the selected text.')
+        : t('content.ai_whole', {}, 'Applies to the whole article.'));
+      watch(aiTask, () => { aiResult.value = ''; aiError.value = ''; });
+      function openAIDialog() {
+        aiTask.value = 'polish';
+        aiInstruction.value = '';
+        aiResult.value = '';
+        aiError.value = '';
+        aiSelection.value = null;
+        if (activeTab.value === 'source') {
+          const el = sourceTextarea();
+          if (el && typeof el.selectionStart === 'number' && el.selectionEnd > el.selectionStart) {
+            aiSelection.value = { start: el.selectionStart, end: el.selectionEnd };
+          }
+        }
+        aiVisible.value = true;
+      }
+      async function runAI() {
+        const task = aiTask.value;
+        const instruction = aiInstruction.value.trim();
+        if (task === 'custom' && !instruction) {
+          aiError.value = t('content.ai_instruction_required', {}, 'Describe what the AI should do');
+          return;
+        }
+        let text = String(body.value || '');
+        if ((task === 'polish' || task === 'custom') && aiSelection.value) {
+          text = text.slice(aiSelection.value.start, aiSelection.value.end);
+        }
+        if (!text.trim() && task !== 'continue') {
+          aiError.value = t('content.ai_no_text', {}, 'Write some content before using AI');
+          return;
+        }
+        if (task === 'continue' && !text.trim() && !form.title.trim()) {
+          aiError.value = t('content.ai_no_text', {}, 'Write some content before using AI');
+          return;
+        }
+        if ((task === 'polish' || task === 'custom') && !aiSelection.value && text.length > 20000) {
+          aiError.value = t('content.ai_too_long', {}, 'The article is too long. Select a passage in Markdown view to polish.');
+          return;
+        }
+        if (task === 'continue') text = text.slice(-12000);
+        if (task === 'summary') text = text.slice(0, 60000);
+        aiRunning.value = true;
+        aiError.value = '';
+        try {
+          const res = await HP.api('/ai/complete', {
+            method: 'POST',
+            body: { task, instruction, text, title: form.title }
+          });
+          aiResult.value = (res && res.text) || '';
+          if (!aiResult.value) {
+            aiError.value = t('content.ai_empty', {}, 'The AI returned an empty result');
+          }
+        } catch (e) {
+          aiError.value = HP.errorText(e);
+          HP.notifyError(e);
+        } finally {
+          aiRunning.value = false;
+        }
+      }
+      function aiApply() {
+        const text = String(aiResult.value || '').trim();
+        if (!text) return;
+        if (aiTask.value === 'summary') {
+          form.description = text.replace(/\s+/g, ' ').slice(0, 500);
+        } else if (aiTask.value === 'continue') {
+          appendSnippet(text);
+        } else if (aiSelection.value) {
+          const { start, end } = aiSelection.value;
+          body.value = body.value.slice(0, start) + text + body.value.slice(end);
+          markDirty();
+        } else {
+          body.value = text;
+          markDirty();
+        }
+        aiVisible.value = false;
+        aiResult.value = '';
+        HP.toast('success', t('content.ai_applied', {}, 'AI result applied'));
+      }
 
       const pathExt = computed(() => {
         const m = form.path.match(/\.(md|markdown|mdown)$/i);
@@ -579,10 +706,10 @@
             nameValue.value = res.slug;
             if (res.translated) {
               HP.toast('success', t('content.filename_generated', {}, 'English file name generated'));
-            } else if (res.reason === 'provider_failed') {
-              HP.toast('warn', t('content.filename_failed', {}, 'Translation failed — used local rules.'), t('content.filename_fallback_hint', {}, 'Configure a provider in Settings → Translation.'));
-            } else {
+            } else if (res.reason === 'not_configured') {
               HP.toast('warn', t('content.filename_fallback', {}, 'No translation service configured — used local rules.'), t('content.filename_fallback_hint', {}, 'Configure a provider in Settings → Translation.'));
+            } else {
+              HP.toast('warn', t('content.filename_failed', {}, 'Translation failed — used local rules.'), t('content.filename_fallback_hint', {}, 'Configure a provider in Settings → Translation.'));
             }
           }
         } catch (e) {
@@ -784,7 +911,8 @@
         { key: 'link', icon: 'pi pi-link', title: t('content.fmt_link', {}, 'Link') },
         { key: 'hr', label: '—', title: t('content.fmt_hr', {}, 'Horizontal rule') },
         { key: 'divider' },
-        { key: 'media', icon: 'pi pi-image', cls: 'md-tool-media', title: t('content.fmt_media', {}, 'Insert media') }
+        { key: 'media', icon: 'pi pi-image', cls: 'md-tool-media', title: t('content.fmt_media', {}, 'Insert media') },
+        { key: 'ai', icon: 'pi pi-sparkles', cls: 'md-tool-ai', title: t('content.ai_assistant', {}, 'AI assistant') }
       ]);
       function runToolbar(key) {
         if (key === 'bold') wrapSelection('**', '**', t('content.fmt_bold', {}, 'Bold'));
@@ -801,6 +929,7 @@
         else if (key === 'link') insertLink();
         else if (key === 'hr') insertRule();
         else if (key === 'media') openMediaPicker();
+        else if (key === 'ai') openAIDialog();
       }
       function onEditorKeydown(event) {
         if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
@@ -1094,6 +1223,9 @@
         remove, addExtra, removeExtra, confirmLeave, mediaPickerVisible, openMediaPicker, insertMedia, go: HP.navigate,
         coverPickerVisible, coverPreview, openCoverPicker, chooseCover, clearCover,
         directories, dirValue, nameValue, dirOptions, translating, translateFilename, onUrlInput, onNameInput,
+        dirDialogVisible, newDirName, creatingDir, openDirectoryDialog, createDirectory,
+        aiVisible, aiTask, aiInstruction, aiResult, aiRunning, aiError, aiTaskOptions, aiScopeHint,
+        openAIDialog, runAI, aiApply,
         sourceEditor, sourceHighlight, highlightedSource, syncSourceScroll, onSourceInput, onEditorKeydown,
         sourceComposing,
         toolbarItems, runToolbar,
@@ -1235,11 +1367,14 @@
                 <template #content>
                   <div class="panel-head"><div><h2>{{ t('content.link_settings', {}, 'File and URL') }}</h2><p>{{ t('content.link_settings_hint', {}, 'Where this page lives and how it is linked.') }}</p></div></div>
                   <div class="form-stack">
-                    <label class="field">
+                    <div class="field">
                       <span>{{ t('content.directory', {}, 'Directory') }}</span>
-                      <PSelect v-model="dirValue" :options="dirOptions" optionLabel="label" optionValue="value" filter class="w-full" />
+                      <div class="dir-row">
+                        <PSelect v-model="dirValue" :options="dirOptions" optionLabel="label" optionValue="value" filter class="w-full" />
+                        <PButton icon="pi pi-folder-plus" :title="t('content.directory_new', {}, 'New folder')" :aria-label="t('content.directory_new', {}, 'New folder')" @click="openDirectoryDialog" />
+                      </div>
                       <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.directory_hint', {}, 'Subdirectory inside content/.') }}</small>
-                    </label>
+                    </div>
                     <div class="field">
                       <span>{{ t('content.filename', {}, 'File name') }}</span>
                       <div class="filename-row">
@@ -1311,6 +1446,48 @@
 
         <MediaPicker v-model:visible="mediaPickerVisible" @insert="insertMedia" />
         <MediaPicker v-model:visible="coverPickerVisible" mode="choose" images-only @select="chooseCover" />
+
+        <PDialog v-model:visible="dirDialogVisible" modal :header="t('content.directory_new', {}, 'New folder')" :style="{ width: '26rem', maxWidth: '94vw' }">
+          <div class="form-stack">
+            <label class="field">
+              <span>{{ t('content.directory_name', {}, 'Folder name') }}</span>
+              <PInputText v-model="newDirName" class="mono-input" placeholder="posts/2026" @keydown.enter.prevent="createDirectory" />
+              <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.directory_name_hint', {}, 'Use / for nested folders, e.g. posts/2026.') }}</small>
+            </label>
+          </div>
+          <template #footer>
+            <PButton text :label="t('common.cancel', {}, 'Cancel')" @click="dirDialogVisible = false" />
+            <PButton :label="t('content.directory_create', {}, 'Create folder')" icon="pi pi-folder-plus" :loading="creatingDir" @click="createDirectory" class="btn-primary" />
+          </template>
+        </PDialog>
+
+        <PDialog v-model:visible="aiVisible" modal :header="t('content.ai_assistant', {}, 'AI assistant')" :style="{ width: '42rem', maxWidth: '94vw' }">
+          <div class="form-stack">
+            <PMessage severity="info" :closable="false">{{ t('content.ai_privacy', {}, 'The content is sent to the AI provider configured in Settings.') }}</PMessage>
+            <label class="field">
+              <span>{{ t('content.ai_task', {}, 'Action') }}</span>
+              <PSelect v-model="aiTask" :options="aiTaskOptions" optionLabel="label" optionValue="value" class="w-full" />
+            </label>
+            <label class="field">
+              <span>{{ t('content.ai_instruction', {}, 'Instruction') }} <em v-if="aiTask !== 'custom'">{{ t('content.optional', {}, 'optional') }}</em></span>
+              <PTextarea v-model="aiInstruction" rows="2" autoResize :placeholder="t('content.ai_instruction_hint', {}, 'e.g. make it more concise and keep the code blocks')" />
+            </label>
+            <small v-if="aiTask === 'polish' || aiTask === 'custom'" class="field-hint"><i class="pi pi-info-circle"></i>{{ aiScopeHint }}</small>
+            <PMessage v-if="aiError" severity="error" :closable="false">{{ aiError }}</PMessage>
+            <label v-if="aiResult" class="field">
+              <span>{{ t('content.ai_result', {}, 'Result') }}</span>
+              <PTextarea v-model="aiResult" rows="10" class="mono-input" />
+            </label>
+          </div>
+          <template #footer>
+            <PButton text :label="t('common.cancel', {}, 'Cancel')" @click="aiVisible = false" />
+            <template v-if="aiResult">
+              <PButton :label="t('content.ai_regenerate', {}, 'Generate again')" icon="pi pi-refresh" :loading="aiRunning" @click="runAI" />
+              <PButton :label="t('content.ai_apply', {}, 'Apply')" icon="pi pi-check" class="btn-primary" @click="aiApply" />
+            </template>
+            <PButton v-else :label="t('content.ai_generate', {}, 'Generate')" icon="pi pi-sparkles" class="btn-primary" :loading="aiRunning" @click="runAI" />
+          </template>
+        </PDialog>
       </div>
     `
   };

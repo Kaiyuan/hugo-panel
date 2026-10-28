@@ -597,6 +597,7 @@ small, .text-sm { font-size: 14px; }
 .md-tool-em { font-style: italic; }
 .md-tool-strike { text-decoration: line-through; }
 .md-tool-media { color: var(--text); background: var(--bg-soft); }
+.md-tool-ai { color: var(--text); background: var(--accent-soft); }
 .md-tool-sep { flex: none; width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
 .md-highlight-wrap {
   position: relative;
@@ -657,6 +658,10 @@ small, .text-sm { font-size: 14px; }
 .filename-row { display: flex; align-items: center; gap: 8px; }
 .filename-row .p-inputtext { flex: 1 1 auto; min-width: 0; }
 .filename-row .p-button { flex: none; }
+.dir-row { display: flex; align-items: center; gap: 8px; }
+.dir-row .p-select { flex: 1 1 auto; min-width: 0; }
+.dir-row .p-button { flex: none; }
+.button-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cover-preview { margin-top: 10px; width: min(100%, 360px); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg-soft); }
 .cover-preview img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
 .markdown-live {

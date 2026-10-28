@@ -28,6 +28,7 @@ type settingsView struct {
 	Notifications   bool            `json:"notifications_enabled"`
 	SMTP            smtpView        `json:"smtp"`
 	Translation     translationView `json:"translation"`
+	AI              aiView          `json:"ai"`
 	EnvOverrides    []string        `json:"env_overrides"`
 	SetupCompleted  string          `json:"setup_completed_at,omitempty"`
 }
@@ -35,6 +36,13 @@ type settingsView struct {
 type translationView struct {
 	Provider  string `json:"provider"`
 	Endpoint  string `json:"endpoint"`
+	APIKeySet bool   `json:"api_key_set"`
+}
+
+type aiView struct {
+	Enabled   bool   `json:"enabled"`
+	BaseURL   string `json:"base_url"`
+	Model     string `json:"model"`
 	APIKeySet bool   `json:"api_key_set"`
 }
 
@@ -59,6 +67,10 @@ func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 		return settingsView{}, err
 	}
 	translateCfg, err := s.settings.Translation(ctx)
+	if err != nil {
+		return settingsView{}, err
+	}
+	aiCfg, err := s.settings.AI(ctx)
 	if err != nil {
 		return settingsView{}, err
 	}
@@ -89,6 +101,12 @@ func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 			Provider:  translateCfg.Provider,
 			Endpoint:  translateCfg.Endpoint,
 			APIKeySet: translateCfg.APIKey != "",
+		},
+		AI: aiView{
+			Enabled:   aiCfg.Enabled,
+			BaseURL:   aiCfg.BaseURL,
+			Model:     aiCfg.Model,
+			APIKeySet: aiCfg.APIKey != "",
 		},
 	}, nil
 }
@@ -122,6 +140,11 @@ type settingsPatch struct {
 	TranslateEndpoint *string `json:"translate_endpoint"`
 	TranslateAPIKey   *string `json:"translate_api_key"`
 	ClearTranslateKey bool    `json:"clear_translate_api_key"`
+	AIEnabled         *bool   `json:"ai_enabled"`
+	AIBaseURL         *string `json:"ai_base_url"`
+	AIModel           *string `json:"ai_model"`
+	AIAPIKey          *string `json:"ai_api_key"`
+	ClearAIKey        bool    `json:"clear_ai_api_key"`
 }
 
 func (s *Server) handleSettingsSave(w http.ResponseWriter, r *http.Request, sess store.Session) {
@@ -275,6 +298,37 @@ func (s *Server) handleSettingsSave(w http.ResponseWriter, r *http.Request, sess
 			return
 		}
 		values[settings.KeyTranslateAPIKey] = strings.TrimSpace(*req.TranslateAPIKey)
+	}
+	if req.AIEnabled != nil {
+		values[settings.KeyAIEnabled] = strconv.FormatBool(*req.AIEnabled)
+	}
+	if req.AIBaseURL != nil {
+		baseURL := strings.TrimRight(strings.TrimSpace(*req.AIBaseURL), "/")
+		if baseURL != "" {
+			u, err := url.Parse(baseURL)
+			if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				writeError(w, http.StatusBadRequest, "invalid_request", "AI base URL must be an absolute http(s) URL")
+				return
+			}
+		}
+		values[settings.KeyAIBaseURL] = baseURL
+	}
+	if req.AIModel != nil {
+		model := strings.TrimSpace(*req.AIModel)
+		if strings.ContainsAny(model, "\x00\r\n") || len([]rune(model)) > 120 {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid AI model name")
+			return
+		}
+		values[settings.KeyAIModel] = model
+	}
+	if req.ClearAIKey {
+		values[settings.KeyAIAPIKey] = ""
+	} else if req.AIAPIKey != nil && *req.AIAPIKey != "" {
+		if strings.ContainsAny(*req.AIAPIKey, "\x00\r\n") || len([]rune(*req.AIAPIKey)) > 500 {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid AI API key")
+			return
+		}
+		values[settings.KeyAIAPIKey] = strings.TrimSpace(*req.AIAPIKey)
 	}
 	if err := s.settings.Update(r.Context(), values); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "Could not save settings")

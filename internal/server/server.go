@@ -20,6 +20,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Kaiyuan/hugo-panel/internal/ai"
 	"github.com/Kaiyuan/hugo-panel/internal/config"
 	"github.com/Kaiyuan/hugo-panel/internal/hugo"
 	"github.com/Kaiyuan/hugo-panel/internal/i18n"
@@ -42,6 +43,7 @@ type Server struct {
 	hugo         *hugo.Service
 	media        *media.Manager
 	translator   *translate.Client
+	aiClient     *ai.Client
 	logger       *slog.Logger
 	version      string
 	assetVersion string
@@ -79,6 +81,7 @@ func New(cfg *config.Config, st *store.Store, set *settings.Manager, tr *i18n.Ma
 		hugo:         hs,
 		media:        media.NewManager(st, func(ctx context.Context) string { return set.HugoDir(ctx) }),
 		translator:   translate.New(),
+		aiClient:     ai.New(),
 		logger:       logger,
 		version:      version,
 		assetVersion: computeAssetVersion(version, index, staticFS),
@@ -145,6 +148,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/content/meta", s.requireAuth(s.handleContentMeta))
 	mux.HandleFunc("GET /api/content/item", s.requireAuth(s.handleContentGet))
 	mux.HandleFunc("POST /api/content/slug", s.requireAuth(s.handleContentSlug))
+	mux.HandleFunc("POST /api/content/directory", s.requireAuth(s.handleContentDirectory))
 	mux.HandleFunc("POST /api/content", s.requireAuth(s.handleContentCreate))
 	mux.HandleFunc("PUT /api/content", s.requireAuth(s.handleContentUpdate))
 	mux.HandleFunc("DELETE /api/content", s.requireAuth(s.handleContentDelete))
@@ -172,6 +176,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/settings", s.requireAuth(s.handleSettingsGet))
 	mux.HandleFunc("PUT /api/settings", s.requireAuth(s.handleSettingsSave))
 	mux.HandleFunc("POST /api/settings/test-email", s.requireAuth(s.handleTestEmail))
+	mux.HandleFunc("POST /api/ai/complete", s.requireAuth(s.handleAIComplete))
+	mux.HandleFunc("POST /api/ai/test", s.requireAuth(s.handleAITest))
 
 	mux.HandleFunc("GET /api/locales", s.requireAuth(s.handleLocales))
 	mux.HandleFunc("POST /api/locales", s.requireAuth(s.handleLocaleAdd))

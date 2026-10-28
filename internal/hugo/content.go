@@ -466,6 +466,46 @@ func (s *Site) contentDirectories() []string {
 	return out
 }
 
+// CreateContentDirectory creates a folder inside content/ and returns its
+// slash-separated path. Existing directories are returned unchanged.
+func (s *Site) CreateContentDirectory(rel string) (string, error) {
+	rel = strings.Trim(strings.TrimSpace(rel), "/")
+	if rel == "" {
+		return "", errf("invalid_path", "Directory name is required")
+	}
+	clean, err := safeRelPath(rel)
+	if err != nil {
+		return "", err
+	}
+	clean = filepath.ToSlash(clean)
+	for _, part := range strings.Split(clean, "/") {
+		if part == "" || strings.HasPrefix(part, ".") || part == "node_modules" {
+			return "", errf("invalid_path", "Invalid content directory name")
+		}
+		if len([]rune(part)) > 120 {
+			return "", errf("invalid_path", "Content directory name is too long")
+		}
+	}
+	full, err := joinWithin(s.ContentDir(), clean)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(full)
+	if err == nil {
+		if !info.IsDir() {
+			return "", errf("file_exists", "A file already exists at this path")
+		}
+		return clean, nil
+	}
+	if !errors.Is(err, fs.ErrNotExist) {
+		return "", err
+	}
+	if err := os.MkdirAll(full, 0o755); err != nil {
+		return "", fmt.Errorf("create content directory: %w", err)
+	}
+	return clean, nil
+}
+
 func (s *Site) ReadContent(rel string) (ContentItem, error) {
 	clean, err := safeRelPath(rel)
 	if err != nil {

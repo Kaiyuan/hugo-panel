@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Kaiyuan/hugo-panel/internal/ai"
 	"github.com/Kaiyuan/hugo-panel/internal/config"
 	"github.com/Kaiyuan/hugo-panel/internal/store"
 	"github.com/Kaiyuan/hugo-panel/internal/translate"
@@ -29,6 +30,10 @@ const (
 	KeyTranslateProvider = "translate_provider"
 	KeyTranslateEndpoint = "translate_endpoint"
 	KeyTranslateAPIKey   = "translate_api_key"
+	KeyAIEnabled         = "ai_enabled"
+	KeyAIBaseURL         = "ai_base_url"
+	KeyAIModel           = "ai_model"
+	KeyAIAPIKey          = "ai_api_key"
 	KeyNotifications     = "notifications_enabled"
 	KeyLastBuild         = "last_build"
 	KeySetupCompletedAt  = "setup_completed_at"
@@ -77,6 +82,10 @@ func (m *Manager) defaults() map[string]string {
 		KeyTranslateProvider: "",
 		KeyTranslateEndpoint: "",
 		KeyTranslateAPIKey:   "",
+		KeyAIEnabled:         "false",
+		KeyAIBaseURL:         ai.DefaultBaseURL,
+		KeyAIModel:           ai.DefaultModel,
+		KeyAIAPIKey:          "",
 		KeyNotifications:     "true",
 	}
 }
@@ -159,6 +168,21 @@ func (m *Manager) Translation(ctx context.Context) (translate.Config, error) {
 		Provider: all[KeyTranslateProvider],
 		Endpoint: all[KeyTranslateEndpoint],
 		APIKey:   all[KeyTranslateAPIKey],
+	}.Normalized(), nil
+}
+
+// AI returns the effective AI provider configuration. The API key is only
+// used for outbound requests and is never sent to clients.
+func (m *Manager) AI(ctx context.Context) (ai.Config, error) {
+	all, err := m.All(ctx)
+	if err != nil {
+		return ai.Config{}, err
+	}
+	return ai.Config{
+		Enabled: all[KeyAIEnabled] == "true",
+		BaseURL: all[KeyAIBaseURL],
+		Model:   all[KeyAIModel],
+		APIKey:  all[KeyAIAPIKey],
 	}.Normalized(), nil
 }
 

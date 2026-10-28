@@ -11,7 +11,7 @@
       const state = HP.state;
       const route = HP.route;
       const confirm = PrimeVue.useConfirm();
-      const validTabs = ['general', 'email', 'translation', 'languages', 'profile'];
+      const validTabs = ['general', 'email', 'translation', 'ai', 'languages', 'profile'];
       const tab = ref(validTabs.indexOf(route.query.tab) >= 0 ? route.query.tab : 'general');
       const settings = ref(null);
       const system = ref(null);
@@ -20,6 +20,8 @@
       const savingGeneral = ref(false);
       const savingEmail = ref(false);
       const savingTranslation = ref(false);
+      const savingAI = ref(false);
+      const testingAI = ref(false);
       const savingProfile = ref(false);
       const savingPassword = ref(false);
       const testingEmail = ref(false);
@@ -30,6 +32,7 @@
         security: 'starttls', notifications_enabled: true, clear_password: false
       });
       const translation = reactive({ provider: '', endpoint: '', api_key: '', clear_key: false });
+      const ai = reactive({ enabled: false, base_url: '', model: '', api_key: '', clear_key: false });
       const profile = reactive({ email: '', language: 'en', theme: 'system' });
       const password = reactive({ current: '', next: '', confirm: '' });
       const languages = computed(() => state.languages || []);
@@ -80,6 +83,12 @@
         translation.endpoint = tr.endpoint || '';
         translation.api_key = '';
         translation.clear_key = false;
+        const aiData = settings.value.ai || {};
+        ai.enabled = !!aiData.enabled;
+        ai.base_url = aiData.base_url || '';
+        ai.model = aiData.model || '';
+        ai.api_key = '';
+        ai.clear_key = false;
         profile.email = state.user.email || '';
         profile.language = state.user.language || 'en';
         profile.theme = state.user.theme || 'system';
@@ -144,6 +153,37 @@
           HP.toast('success', t('settings.saved', {}, 'Settings saved'));
         } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
         finally { savingTranslation.value = false; }
+      }
+      async function saveAI() {
+        savingAI.value = true;
+        error.value = '';
+        try {
+          const body = {
+            ai_enabled: ai.enabled, ai_base_url: ai.base_url, ai_model: ai.model,
+            clear_ai_api_key: ai.clear_key
+          };
+          if (ai.api_key) body.ai_api_key = ai.api_key;
+          settings.value = await HP.api('/settings', { method: 'PUT', body });
+          fill();
+          HP.toast('success', t('settings.saved', {}, 'Settings saved'));
+        } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
+        finally { savingAI.value = false; }
+      }
+      async function testAI() {
+        testingAI.value = true;
+        error.value = '';
+        try {
+          const res = await HP.api('/ai/test', {
+            method: 'POST',
+            body: { base_url: ai.base_url, model: ai.model, api_key: ai.api_key }
+          });
+          if (res && res.ok) {
+            HP.toast('success', t('settings.ai_test_ok', { model: res.model }, 'Connection OK — {model}'));
+          } else {
+            HP.toast('warn', t('settings.ai_test_failed', {}, 'Connection failed'), (res && res.message) || '');
+          }
+        } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
+        finally { testingAI.value = false; }
       }
       async function testEmail() {
         if (!testTo.value.trim()) { HP.toast('error', t('settings.recipient_required', {}, 'Enter a recipient email')); return; }
@@ -277,10 +317,10 @@
       function userSince(ts) { return ts ? HP.formatDate(new Date(ts * 1000).toISOString()) : '—'; }
       onMounted(load);
       return {
-        state, tab, settings, system, loading, error, savingGeneral, savingEmail, savingTranslation, savingProfile, savingPassword,
-        testingEmail, testTo, general, email, translation, profile, password, languages, envOverrides, smtpEnvOverrides,
+        state, tab, settings, system, loading, error, savingGeneral, savingEmail, savingTranslation, savingAI, savingProfile, savingPassword,
+        testingEmail, testingAI, testTo, general, email, translation, ai, profile, password, languages, envOverrides, smtpEnvOverrides,
         langOptions, themeOptions, securityOptions, providerOptions, addVisible, adding, addForm, fileInput, addError,
-        isEnv, hasSmtpEnv, load, saveGeneral, saveEmail, saveTranslation, testEmail, saveProfile, changePassword, openAdd,
+        isEnv, hasSmtpEnv, load, saveGeneral, saveEmail, saveTranslation, saveAI, testAI, testEmail, saveProfile, changePassword, openAdd,
         chooseTranslationFile, onTranslationFile, addTranslation, downloadTemplate, deleteTranslation,
         uptime, userSince, initials: HP.initials, formatDateTime: HP.formatDateTime, formatBytes: HP.formatBytes, t
       };
@@ -300,7 +340,8 @@
           <PTabList>
             <PTab value="general"><i class="pi pi-sliders-h"></i> {{ t('settings.general', {}, 'General') }}</PTab>
             <PTab value="email"><i class="pi pi-envelope"></i> {{ t('settings.email', {}, 'Email') }}</PTab>
-            <PTab value="translation"><i class="pi pi-sparkles"></i> {{ t('settings.translation', {}, 'Translation') }}</PTab>
+            <PTab value="translation"><i class="pi pi-language"></i> {{ t('settings.translation', {}, 'Translation') }}</PTab>
+            <PTab value="ai"><i class="pi pi-bolt"></i> {{ t('settings.ai', {}, 'AI') }}</PTab>
             <PTab value="languages"><i class="pi pi-language"></i> {{ t('settings.languages', {}, 'Languages') }}</PTab>
             <PTab value="profile"><i class="pi pi-user"></i> {{ t('settings.profile', {}, 'Profile') }}</PTab>
           </PTabList>
@@ -401,6 +442,36 @@
                   <template #content>
                     <div class="panel-head"><div><h2>{{ t('settings.translation_help', {}, 'How it works') }}</h2><p>{{ t('settings.translation_help_hint', {}, 'What happens when no provider is set.') }}</p></div></div>
                     <PMessage severity="info" :closable="false">{{ t('settings.translation_note', {}, 'When a provider is configured, the “English” button in the editor translates the title and slugifies it. Without a provider, or if the request fails, English titles are still converted locally and Chinese titles fall back to a date-based name.') }}</PMessage>
+                  </template>
+                </PCard>
+              </div>
+            </PTabPanel>
+
+            <PTabPanel value="ai">
+              <div class="settings-grid">
+                <PCard class="panel-card">
+                  <template #content>
+                    <div class="panel-head"><div><h2>{{ t('settings.ai_title', {}, 'AI provider') }}</h2><p>{{ t('settings.ai_hint', {}, 'Connect an OpenAI-compatible API for writing assistance and title translation.') }}</p></div></div>
+                    <div class="switch-row">
+                      <div><strong>{{ t('settings.ai_enabled', {}, 'Enable AI features') }}</strong><small>{{ t('settings.ai_enabled_hint', {}, 'Editor actions and title translation are sent to the configured provider.') }}</small></div>
+                      <PToggleSwitch v-model="ai.enabled" />
+                    </div>
+                    <div class="form-stack">
+                      <label class="field"><span>{{ t('settings.ai_base_url', {}, 'API base URL') }}</span><PInputText v-model="ai.base_url" class="mono-input" placeholder="https://api.openai.com/v1" /><small class="field-hint">{{ t('settings.ai_base_url_hint', {}, 'Base URL of an OpenAI-compatible API. A full /chat/completions endpoint is also accepted.') }}</small></label>
+                      <label class="field"><span>{{ t('settings.ai_model', {}, 'Model') }}</span><PInputText v-model="ai.model" class="mono-input" placeholder="gpt-4o-mini" /><small class="field-hint">{{ t('settings.ai_model_hint', {}, 'Model name accepted by the provider, e.g. gpt-4o-mini or deepseek-chat.') }}</small></label>
+                      <label class="field"><span>{{ t('settings.ai_api_key', {}, 'API key') }}</span><PPassword v-model="ai.api_key" :feedback="false" toggleMask inputClass="w-full" :placeholder="settings.ai.api_key_set ? t('settings.password_keep', {}, 'Saved — leave blank to keep') : ''" autocomplete="new-password" /><small class="field-hint">{{ t('settings.ai_api_key_hint', {}, 'Stored on the server and never returned by the API. Leave blank for local providers without a key.') }}</small></label>
+                      <div v-if="settings.ai.api_key_set" class="check-row"><PCheckbox v-model="ai.clear_key" binary /><span>{{ t('settings.ai_clear_key', {}, 'Remove the saved API key') }}</span></div>
+                      <div class="button-row">
+                        <PButton :label="t('common.save_changes', {}, 'Save changes')" icon="pi pi-check" :loading="savingAI" @click="saveAI" class="btn-primary" />
+                        <PButton :label="t('settings.ai_test', {}, 'Test connection')" icon="pi pi-bolt" :loading="testingAI" outlined @click="testAI" />
+                      </div>
+                    </div>
+                  </template>
+                </PCard>
+                <PCard class="panel-card">
+                  <template #content>
+                    <div class="panel-head"><div><h2>{{ t('settings.ai_help', {}, 'Compatible providers') }}</h2><p>{{ t('settings.ai_help_hint', {}, 'Any OpenAI-compatible chat completions API works.') }}</p></div></div>
+                    <PMessage severity="info" :closable="false">{{ t('settings.ai_note', {}, 'Works with OpenAI, DeepSeek, Moonshot, Qwen, SiliconFlow, OpenRouter, Ollama and LM Studio. When no dedicated translation provider is set, the AI also generates English file names. Article text is sent to the provider you configure.') }}</PMessage>
                   </template>
                 </PCard>
               </div>
