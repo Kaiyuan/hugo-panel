@@ -25,6 +25,7 @@ services:
     #  - 114.114.115.115
     ports:
       - "55530:8080"
+    network_mode: bridge
     environment:
       TZ: Asia/Shanghai
       HUGO_DIR: /app/hugo
