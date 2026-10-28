@@ -12,7 +12,7 @@ if [ "$(id -u)" = "0" ]; then
     chown -R hugo:hugo "${HUGO_DIR:-/app/hugo}"
   fi
 
-  exec gosu hugo "$@"
+  exec su-exec hugo "$@"
 fi
 
 exec "$@"
