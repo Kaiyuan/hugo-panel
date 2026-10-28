@@ -295,9 +295,16 @@
       const loadError = ref('');
       const dirty = ref(false);
       const settingUp = ref(false);
-      const activeTab = ref('edit');
+      const activeTab = ref(loadEditorTab());
       const mediaPickerVisible = ref(false);
       const coverPickerVisible = ref(false);
+      const translating = ref(false);
+      const directories = ref([]);
+      const dirValue = ref('');
+      const nameValue = ref('');
+      const nameTouched = ref(false);
+      const urlTouched = ref(false);
+      let lastAutoUrl = '';
       const sourceEditor = ref(null);
       const sourceHighlight = ref(null);
       const sourceComposing = ref(false);
@@ -307,7 +314,6 @@
       const form = reactive({
         title: '',
         path: '',
-        folder: route.query.section || '',
         slug: '',
         date: HP.toLocalInput(new Date().toISOString()),
         draft: true,
@@ -321,8 +327,68 @@
         image: ''
       });
       const body = ref('');
-      const pathTouched = ref(false);
       const highlightedSource = computed(() => highlightMarkdown(body.value));
+
+      function loadEditorTab() {
+        try {
+          return localStorage.getItem('hp_editor_tab') === 'source' ? 'source' : 'edit';
+        } catch (e) {
+          return 'edit';
+        }
+      }
+      watch(activeTab, (value) => {
+        if (value !== 'edit' && value !== 'source') return;
+        try { localStorage.setItem('hp_editor_tab', value); } catch (e) { /* storage unavailable */ }
+      });
+
+      const dirOptions = computed(() => {
+        const list = directories.value.slice();
+        if (dirValue.value && list.indexOf(dirValue.value) < 0) list.push(dirValue.value);
+        list.sort();
+        return [{ label: t('content.directory_root', {}, 'content/'), value: '' }]
+          .concat(list.map((dir) => ({ label: dir, value: dir })));
+      });
+      function pathParts(value) {
+        const clean = String(value || '').replace(/\\/g, '/').replace(/^\/+/, '');
+        const slash = clean.lastIndexOf('/');
+        const dir = slash >= 0 ? clean.slice(0, slash) : '';
+        const file = slash >= 0 ? clean.slice(slash + 1) : clean;
+        return { dir, name: file.replace(/\.(md|markdown|mdown)$/i, '') };
+      }
+      function setPathFields(value) {
+        const parts = pathParts(value);
+        dirValue.value = parts.dir;
+        nameValue.value = parts.name;
+      }
+      function onNameInput() {
+        nameTouched.value = true;
+        const normalized = String(nameValue.value || '').replace(/\s+/g, '-');
+        if (normalized !== nameValue.value) nameValue.value = normalized;
+      }
+      function syncPath() {
+        const name = String(nameValue.value || '').trim().replace(/^\/+/, '').replace(/\.(md|markdown|mdown)$/i, '');
+        const dir = String(dirValue.value || '').trim().replace(/^\/+|\/+$/g, '');
+        form.path = name ? (dir ? dir + '/' + name + '.md' : name + '.md') : '';
+      }
+      function autoUrl() {
+        const name = String(nameValue.value || '').trim().replace(/\.(md|markdown|mdown)$/i, '');
+        if (!name) return '';
+        const dir = String(dirValue.value || '').trim().replace(/^\/+|\/+$/g, '');
+        return '/' + (dir ? dir + '/' : '') + name + '/';
+      }
+      function refreshAutoUrl() {
+        if (urlTouched.value) return;
+        const next = autoUrl();
+        if (!form.url || form.url === lastAutoUrl) {
+          form.url = next;
+          lastAutoUrl = next;
+        }
+      }
+      function onUrlInput() {
+        urlTouched.value = !!form.url.trim();
+        if (!urlTouched.value) refreshAutoUrl();
+      }
+      watch([dirValue, nameValue], () => { syncPath(); refreshAutoUrl(); });
 
       const pathExt = computed(() => {
         const m = form.path.match(/\.(md|markdown|mdown)$/i);
@@ -490,14 +556,41 @@
         { label: t('content.type_json', {}, 'JSON'), value: 'json' }
       ]);
 
-      function suggestedPath() {
-        if (isNew.value && !pathTouched.value) {
-          const folder = form.folder.trim().replace(/^\/+|\/+$/g, '');
-          const name = HP.slugify(form.slug || form.title || 'untitled');
-          form.path = (folder ? folder + '/' : '') + name + '.md';
+      function asciiSlug(value) {
+        const out = HP.slugify(value || '');
+        return /^[a-z0-9][a-z0-9-]*$/.test(out) ? out : '';
+      }
+      watch(() => form.title, (title) => {
+        if (nameTouched.value) return;
+        const suggestion = asciiSlug(title);
+        if (suggestion) nameValue.value = suggestion;
+      });
+      async function translateFilename() {
+        const title = form.title.trim();
+        if (!title) {
+          HP.toast('error', t('content.title_required', {}, 'Add a title before saving'));
+          return;
+        }
+        translating.value = true;
+        try {
+          const res = await HP.api('/content/slug', { method: 'POST', body: { title } });
+          if (res && res.slug) {
+            nameTouched.value = true;
+            nameValue.value = res.slug;
+            if (res.translated) {
+              HP.toast('success', t('content.filename_generated', {}, 'English file name generated'));
+            } else if (res.reason === 'provider_failed') {
+              HP.toast('warn', t('content.filename_failed', {}, 'Translation failed — used local rules.'), t('content.filename_fallback_hint', {}, 'Configure a provider in Settings → Translation.'));
+            } else {
+              HP.toast('warn', t('content.filename_fallback', {}, 'No translation service configured — used local rules.'), t('content.filename_fallback_hint', {}, 'Configure a provider in Settings → Translation.'));
+            }
+          }
+        } catch (e) {
+          HP.notifyError(e);
+        } finally {
+          translating.value = false;
         }
       }
-      watch(() => [form.title, form.slug, form.folder], () => { if (isNew.value && !pathTouched.value) suggestedPath(); });
 
       function markDirty() {
         if (!settingUp.value && !loading.value) dirty.value = true;
@@ -741,18 +834,27 @@
         body.value = (item.body || '').replace(/\r\n?/g, '\n');
         format.value = item.format || 'yaml';
         extras.value = extraRows(item.front_matter || {});
-        pathTouched.value = true;
+        setPathFields(item.path);
+        nameTouched.value = true;
+        urlTouched.value = false;
+        lastAutoUrl = '';
+        refreshAutoUrl();
         nextTick(() => { dirty.value = false; settingUp.value = false; });
       }
       async function load() {
         loading.value = true;
         loadError.value = '';
         try {
+          const meta = await HP.api('/content/meta').catch(() => null);
+          if (meta && Array.isArray(meta.directories)) directories.value = meta.directories;
           if (isNew.value) {
             settingUp.value = true;
-            form.path = '';
-            form.folder = route.query.section || form.folder || '';
-            suggestedPath();
+            dirValue.value = String(route.query.section || '').trim().replace(/^\/+|\/+$/g, '');
+            nameValue.value = '';
+            nameTouched.value = false;
+            urlTouched.value = false;
+            lastAutoUrl = '';
+            syncPath();
             form.date = HP.toLocalInput(new Date().toISOString());
             nextTick(() => { dirty.value = false; settingUp.value = false; });
           } else {
@@ -813,6 +915,8 @@
         error.value = '';
         commitBlockEdit();
         if (!form.title.trim()) { error.value = t('content.title_required', {}, 'Add a title before saving'); return; }
+        syncPath();
+        if (!nameValue.value.trim()) { error.value = t('content.filename_required', {}, 'Choose a file name before saving'); return; }
         if (!form.path.trim() || !pathExt.value) { error.value = t('content.path_invalid', {}, 'Path must end in .md, .markdown or .mdown'); return; }
         saving.value = true;
         try {
@@ -875,7 +979,6 @@
       }
       function addExtra() { extras.value.push({ key: '', type: 'string', value: '' }); }
       function removeExtra(index) { extras.value.splice(index, 1); }
-      function onPathInput() { pathTouched.value = true; }
 
       // Insert media links at the caret of whichever editor is active.
       let pendingInsert = null;
@@ -988,8 +1091,9 @@
         isNew, loading, saving, deleting, error, loadError, dirty, activeTab, form, body, format, extras,
         formatOptions, typeOptions, wordCount: liveWordCount, preview, metaStatus, pathExt, load, save, back,
         liveBlocks, editingBlock, blockDraft, beginBlockEdit, onBlockMouseDown, commitBlockEdit, onBlockBlur, onBlockInput,
-        remove, addExtra, removeExtra, onPathInput, confirmLeave, mediaPickerVisible, openMediaPicker, insertMedia, go: HP.navigate,
+        remove, addExtra, removeExtra, confirmLeave, mediaPickerVisible, openMediaPicker, insertMedia, go: HP.navigate,
         coverPickerVisible, coverPreview, openCoverPicker, chooseCover, clearCover,
+        directories, dirValue, nameValue, dirOptions, translating, translateFilename, onUrlInput, onNameInput,
         sourceEditor, sourceHighlight, highlightedSource, syncSourceScroll, onSourceInput, onEditorKeydown,
         sourceComposing,
         toolbarItems, runToolbar,
@@ -1001,7 +1105,6 @@
         <PageHeader :eyebrow="t('content.library', {}, 'Library')" :title="isNew ? t('content.new', {}, 'New content') : t('content.edit', {}, 'Edit content')" :subtitle="form.path || t('content.editor_subtitle', {}, 'Draft, preview and publish Markdown.')" live>
           <template #actions>
             <PButton text :label="t('common.back', {}, 'Back')" icon="pi pi-arrow-left" @click="back" />
-            <PButton text icon="pi pi-image" :label="t('media.insert_media', {}, 'Insert media')" @click="openMediaPicker" />
             <PButton v-if="!isNew" text severity="danger" icon="pi pi-trash" :loading="deleting" @click="remove" :title="t('common.delete')" />
             <PButton :label="t('content.save', {}, 'Save content')" icon="pi pi-check" :loading="saving" @click="save" class="btn-primary" />
           </template>
@@ -1018,78 +1121,10 @@
             <div class="editor-main">
               <PCard class="panel-card">
                 <template #content>
-                  <div class="form-stack">
-                    <label class="field">
-                      <span>{{ t('content.title_field', {}, 'Title') }}</span>
-                      <PInputText v-model="form.title" class="text-xl-input" :placeholder="t('content.title_placeholder', {}, 'A clear, memorable title')" />
-                    </label>
-                    <div class="field-grid" v-if="isNew">
-                      <label class="field">
-                        <span>{{ t('content.folder', {}, 'Folder / section') }}</span>
-                        <PInputText v-model="form.folder" :placeholder="t('content.folder_hint', {}, 'posts')" />
-                      </label>
-                      <label class="field">
-                        <span>{{ t('content.slug', {}, 'Slug') }}</span>
-                        <PInputText v-model="form.slug" :placeholder="t('content.slug_hint', {}, 'my-first-post')" />
-                      </label>
-                    </div>
-                    <label class="field">
-                      <span>{{ t('content.path', {}, 'File path') }}</span>
-                      <PInputText v-model="form.path" @input="onPathInput" class="mono-input" />
-                      <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.path_hint', {}, 'Relative to content/. Changing this renames the file.') }}</small>
-                    </label>
-                    <label class="field">
-                      <span>{{ t('content.url', {}, 'URL') }} <em>{{ t('content.optional', {}, 'optional') }}</em></span>
-                      <PInputText v-model="form.url" class="mono-input" :placeholder="t('content.url_hint', {}, '/about/ or https://example.com/')" />
-                      <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.url_field_hint', {}, 'Custom permalink written to the “url” front matter field.') }}</small>
-                    </label>
-                    <div class="field-grid">
-                      <label class="field">
-                        <span>{{ t('content.author', {}, 'Author') }}</span>
-                        <PInputText v-model="form.author" :placeholder="t('content.author_hint', {}, 'Defaults to the site author')" />
-                      </label>
-                      <label class="field">
-                        <span>{{ t('content.type_field', {}, 'Type') }}</span>
-                        <PInputText v-model="form.type" :placeholder="t('content.type_hint', {}, 'posts')" />
-                      </label>
-                    </div>
-                    <div class="field-grid">
-                      <label class="field">
-                        <span>{{ t('content.date', {}, 'Publish date') }}</span>
-                        <PInputText type="datetime-local" v-model="form.date" />
-                      </label>
-                      <label class="field">
-                        <span>{{ t('content.weight', {}, 'Weight') }}</span>
-                        <PInputNumber v-model="form.weight" :min="0" :max="100000" showButtons class="w-full" />
-                      </label>
-                    </div>
-                    <label class="field">
-                      <span>{{ t('content.description', {}, 'Description') }}</span>
-                      <PTextarea v-model="form.description" rows="2" autoResize :placeholder="t('content.description_hint', {}, 'Shown in search results and social cards')" />
-                    </label>
-                    <div class="field">
-                      <span>{{ t('content.cover_image', {}, 'Cover image') }} <em>{{ t('content.optional', {}, 'optional') }}</em></span>
-                      <div class="cover-input-row">
-                        <PInputText v-model="form.image" class="mono-input" :placeholder="t('content.cover_placeholder', {}, '/images/cover.jpg')" />
-                        <PButton icon="pi pi-images" :label="t('content.choose_cover', {}, 'Media library')" @click="openCoverPicker" />
-                        <PButton v-if="form.image" text severity="danger" icon="pi pi-times" :title="t('content.remove_cover', {}, 'Remove cover image')" @click="clearCover" />
-                      </div>
-                      <div v-if="form.image" class="cover-preview">
-                        <img :key="coverPreview" :src="coverPreview" alt="" @error="$event.target.style.visibility = 'hidden'" />
-                      </div>
-                      <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.cover_hint', {}, 'Written to the “image” front matter field. Pick a file from the media library or paste a URL.') }}</small>
-                    </div>
-                    <div class="field-grid">
-                      <label class="field">
-                        <span>{{ t('content.tags', {}, 'Tags') }}</span>
-                        <PInputText v-model="form.tags" :placeholder="t('content.tags_hint', {}, 'design, hugo, writing')" />
-                      </label>
-                      <label class="field">
-                        <span>{{ t('content.categories', {}, 'Categories') }}</span>
-                        <PInputText v-model="form.categories" :placeholder="t('content.categories_hint', {}, 'journal')" />
-                      </label>
-                    </div>
-                  </div>
+                  <label class="field">
+                    <span>{{ t('content.title_field', {}, 'Title') }}</span>
+                    <PInputText v-model="form.title" class="text-xl-input" :placeholder="t('content.title_placeholder', {}, 'A clear, memorable title')" />
+                  </label>
                 </template>
               </PCard>
 
@@ -1162,21 +1197,107 @@
             </div>
 
             <aside class="editor-side">
-              <PCard class="panel-card sticky-card">
+              <PCard class="panel-card">
                 <template #content>
                   <div class="panel-head"><div><h2>{{ t('content.publishing', {}, 'Publishing') }}</h2><p>{{ t('content.publishing_hint', {}, 'Status and format') }}</p></div><StatusTag :status="metaStatus" /></div>
                   <div class="switch-row">
                     <div><strong>{{ t('content.draft', {}, 'Draft') }}</strong><small>{{ t('content.draft_hint', {}, 'Hide this page from the live site') }}</small></div>
                     <PToggleSwitch v-model="form.draft" />
                   </div>
-                  <label class="field">
-                    <span>{{ t('content.front_matter_format', {}, 'Front matter format') }}</span>
-                    <PSelect v-model="format" :options="formatOptions" optionLabel="label" optionValue="value" class="w-full" />
-                  </label>
+                  <div class="form-stack">
+                    <label class="field">
+                      <span>{{ t('content.date', {}, 'Publish date') }}</span>
+                      <PInputText type="datetime-local" v-model="form.date" />
+                    </label>
+                    <label class="field">
+                      <span>{{ t('content.author', {}, 'Author') }}</span>
+                      <PInputText v-model="form.author" :placeholder="t('content.author_hint', {}, 'Defaults to the site author')" />
+                    </label>
+                    <label class="field">
+                      <span>{{ t('content.type_field', {}, 'Type') }}</span>
+                      <PInputText v-model="form.type" :placeholder="t('content.type_hint', {}, 'posts')" />
+                    </label>
+                    <div class="field-grid">
+                      <label class="field">
+                        <span>{{ t('content.weight', {}, 'Weight') }}</span>
+                        <PInputNumber v-model="form.weight" :min="0" :max="100000" showButtons class="w-full" />
+                      </label>
+                      <label class="field">
+                        <span>{{ t('content.front_matter_format', {}, 'Front matter format') }}</span>
+                        <PSelect v-model="format" :options="formatOptions" optionLabel="label" optionValue="value" class="w-full" />
+                      </label>
+                    </div>
+                  </div>
+                </template>
+              </PCard>
+
+              <PCard class="panel-card">
+                <template #content>
+                  <div class="panel-head"><div><h2>{{ t('content.link_settings', {}, 'File and URL') }}</h2><p>{{ t('content.link_settings_hint', {}, 'Where this page lives and how it is linked.') }}</p></div></div>
+                  <div class="form-stack">
+                    <label class="field">
+                      <span>{{ t('content.directory', {}, 'Directory') }}</span>
+                      <PSelect v-model="dirValue" :options="dirOptions" optionLabel="label" optionValue="value" filter class="w-full" />
+                      <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.directory_hint', {}, 'Subdirectory inside content/.') }}</small>
+                    </label>
+                    <div class="field">
+                      <span>{{ t('content.filename', {}, 'File name') }}</span>
+                      <div class="filename-row">
+                        <PInputText v-model="nameValue" @input="onNameInput" class="mono-input" :placeholder="t('content.filename_hint', {}, 'my-first-post')" />
+                        <PButton icon="pi pi-language" :loading="translating" :label="t('content.translate_filename', {}, 'English')" :title="t('content.translate_filename_hint', {}, 'Translate the title into an English file name')" @click="translateFilename" />
+                      </div>
+                      <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.filename_note', {}, 'Spaces become dashes. The .md extension is added automatically.') }}</small>
+                    </div>
+                    <label class="field">
+                      <span>{{ t('content.url', {}, 'URL') }} <em>{{ t('content.optional', {}, 'optional') }}</em></span>
+                      <PInputText v-model="form.url" @input="onUrlInput" class="mono-input" :placeholder="t('content.url_hint', {}, '/about/ or https://example.com/')" />
+                      <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.url_field_hint', {}, 'Custom permalink written to the “url” front matter field.') }}</small>
+                    </label>
+                    <label class="field">
+                      <span>{{ t('content.slug', {}, 'Slug') }} <em>{{ t('content.optional', {}, 'optional') }}</em></span>
+                      <PInputText v-model="form.slug" class="mono-input" :placeholder="t('content.slug_hint', {}, 'my-first-post')" />
+                    </label>
+                  </div>
+                </template>
+              </PCard>
+
+              <PCard class="panel-card">
+                <template #content>
+                  <div class="panel-head"><div><h2>{{ t('content.summary_cover', {}, 'Summary and cover') }}</h2><p>{{ t('content.summary_cover_hint', {}, 'Search previews and social cards.') }}</p></div></div>
+                  <div class="form-stack">
+                    <label class="field">
+                      <span>{{ t('content.description', {}, 'Description') }}</span>
+                      <PTextarea v-model="form.description" rows="2" autoResize :placeholder="t('content.description_hint', {}, 'Shown in search results and social cards')" />
+                    </label>
+                    <div class="field">
+                      <span>{{ t('content.cover_image', {}, 'Cover image') }} <em>{{ t('content.optional', {}, 'optional') }}</em></span>
+                      <div class="cover-input-row">
+                        <PInputText v-model="form.image" class="mono-input" :placeholder="t('content.cover_placeholder', {}, '/images/cover.jpg')" />
+                        <PButton icon="pi pi-images" :label="t('content.choose_cover', {}, 'Media library')" @click="openCoverPicker" />
+                        <PButton v-if="form.image" text severity="danger" icon="pi pi-times" :title="t('content.remove_cover', {}, 'Remove cover image')" @click="clearCover" />
+                      </div>
+                      <div v-if="form.image" class="cover-preview">
+                        <img :key="coverPreview" :src="coverPreview" alt="" @error="$event.target.style.visibility = 'hidden'" />
+                      </div>
+                      <small class="field-hint"><i class="pi pi-info-circle"></i>{{ t('content.cover_hint', {}, 'Written to the “image” front matter field. Pick a file from the media library or paste a URL.') }}</small>
+                    </div>
+                    <label class="field">
+                      <span>{{ t('content.tags', {}, 'Tags') }}</span>
+                      <PInputText v-model="form.tags" :placeholder="t('content.tags_hint', {}, 'design, Hugo, writing')" />
+                    </label>
+                    <label class="field">
+                      <span>{{ t('content.categories', {}, 'Categories') }}</span>
+                      <PInputText v-model="form.categories" :placeholder="t('content.categories_hint', {}, 'journal')" />
+                    </label>
+                  </div>
+                </template>
+              </PCard>
+
+              <PCard class="panel-card">
+                <template #content>
                   <div class="side-meta">
-                    <div><span>{{ t('content.slug', {}, 'Slug') }}</span><strong>{{ form.slug || '—' }}</strong></div>
                     <div><span>{{ t('content.words', {}, 'Words') }}</span><strong>{{ wordCount }}</strong></div>
-                    <div><span>{{ t('content.path', {}, 'Path') }}</span><strong class="break-all">{{ form.path }}</strong></div>
+                    <div><span>{{ t('content.path', {}, 'Path') }}</span><strong class="break-all">{{ form.path || '—' }}</strong></div>
                   </div>
                   <div class="action-stack">
                     <PButton class="w-full btn-primary" :label="t('content.save', {}, 'Save content')" icon="pi pi-check" :loading="saving" @click="save" />

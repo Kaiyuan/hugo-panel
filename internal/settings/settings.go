@@ -9,25 +9,29 @@ import (
 
 	"github.com/Kaiyuan/hugo-panel/internal/config"
 	"github.com/Kaiyuan/hugo-panel/internal/store"
+	"github.com/Kaiyuan/hugo-panel/internal/translate"
 )
 
 const (
-	KeyDefaultLanguage  = "default_language"
-	KeyDefaultTheme     = "default_theme"
-	KeyHugoDir          = "hugo_dir"
-	KeyHugoBinary       = "hugo_binary"
-	KeyPublicURL        = "public_url"
-	KeySMTPEnabled      = "smtp_enabled"
-	KeySMTPHost         = "smtp_host"
-	KeySMTPPort         = "smtp_port"
-	KeySMTPUsername     = "smtp_username"
-	KeySMTPPassword     = "smtp_password"
-	KeySMTPFrom         = "smtp_from"
-	KeySMTPFromName     = "smtp_from_name"
-	KeySMTPSecurity     = "smtp_security"
-	KeyNotifications    = "notifications_enabled"
-	KeyLastBuild        = "last_build"
-	KeySetupCompletedAt = "setup_completed_at"
+	KeyDefaultLanguage   = "default_language"
+	KeyDefaultTheme      = "default_theme"
+	KeyHugoDir           = "hugo_dir"
+	KeyHugoBinary        = "hugo_binary"
+	KeyPublicURL         = "public_url"
+	KeySMTPEnabled       = "smtp_enabled"
+	KeySMTPHost          = "smtp_host"
+	KeySMTPPort          = "smtp_port"
+	KeySMTPUsername      = "smtp_username"
+	KeySMTPPassword      = "smtp_password"
+	KeySMTPFrom          = "smtp_from"
+	KeySMTPFromName      = "smtp_from_name"
+	KeySMTPSecurity      = "smtp_security"
+	KeyTranslateProvider = "translate_provider"
+	KeyTranslateEndpoint = "translate_endpoint"
+	KeyTranslateAPIKey   = "translate_api_key"
+	KeyNotifications     = "notifications_enabled"
+	KeyLastBuild         = "last_build"
+	KeySetupCompletedAt  = "setup_completed_at"
 )
 
 type Manager struct {
@@ -57,20 +61,23 @@ func (m *Manager) defaults() map[string]string {
 		hugoDir = m.cfg.DefaultHugoDir
 	}
 	return map[string]string{
-		KeyDefaultLanguage: "en",
-		KeyDefaultTheme:    "system",
-		KeyHugoDir:         hugoDir,
-		KeyHugoBinary:      m.cfg.DefaultHugoBin,
-		KeyPublicURL:       "",
-		KeySMTPEnabled:     "false",
-		KeySMTPHost:        "",
-		KeySMTPPort:        "587",
-		KeySMTPUsername:    "",
-		KeySMTPPassword:    "",
-		KeySMTPFrom:        "",
-		KeySMTPFromName:    "Hugo Panel",
-		KeySMTPSecurity:    "starttls",
-		KeyNotifications:   "true",
+		KeyDefaultLanguage:   "en",
+		KeyDefaultTheme:      "system",
+		KeyHugoDir:           hugoDir,
+		KeyHugoBinary:        m.cfg.DefaultHugoBin,
+		KeyPublicURL:         "",
+		KeySMTPEnabled:       "false",
+		KeySMTPHost:          "",
+		KeySMTPPort:          "587",
+		KeySMTPUsername:      "",
+		KeySMTPPassword:      "",
+		KeySMTPFrom:          "",
+		KeySMTPFromName:      "Hugo Panel",
+		KeySMTPSecurity:      "starttls",
+		KeyTranslateProvider: "",
+		KeyTranslateEndpoint: "",
+		KeyTranslateAPIKey:   "",
+		KeyNotifications:     "true",
 	}
 }
 
@@ -140,6 +147,20 @@ func (m *Manager) PublicURL(ctx context.Context) string {
 }
 
 func (m *Manager) PublicURLFromEnv() bool { return m.cfg.PublicURL != "" }
+
+// Translation returns the effective title-translation configuration. The API
+// key is only used for outbound requests and is never sent to clients.
+func (m *Manager) Translation(ctx context.Context) (translate.Config, error) {
+	all, err := m.All(ctx)
+	if err != nil {
+		return translate.Config{}, err
+	}
+	return translate.Config{
+		Provider: all[KeyTranslateProvider],
+		Endpoint: all[KeyTranslateEndpoint],
+		APIKey:   all[KeyTranslateAPIKey],
+	}.Normalized(), nil
+}
 
 func (m *Manager) SMTPOverrides() []string {
 	var keys []string

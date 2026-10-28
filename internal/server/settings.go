@@ -16,18 +16,26 @@ import (
 	"github.com/Kaiyuan/hugo-panel/internal/mailer"
 	"github.com/Kaiyuan/hugo-panel/internal/settings"
 	"github.com/Kaiyuan/hugo-panel/internal/store"
+	"github.com/Kaiyuan/hugo-panel/internal/translate"
 )
 
 type settingsView struct {
-	HugoDir         string   `json:"hugo_dir"`
-	HugoBinary      string   `json:"hugo_binary"`
-	PublicURL       string   `json:"public_url"`
-	DefaultLanguage string   `json:"default_language"`
-	DefaultTheme    string   `json:"default_theme"`
-	Notifications   bool     `json:"notifications_enabled"`
-	SMTP            smtpView `json:"smtp"`
-	EnvOverrides    []string `json:"env_overrides"`
-	SetupCompleted  string   `json:"setup_completed_at,omitempty"`
+	HugoDir         string          `json:"hugo_dir"`
+	HugoBinary      string          `json:"hugo_binary"`
+	PublicURL       string          `json:"public_url"`
+	DefaultLanguage string          `json:"default_language"`
+	DefaultTheme    string          `json:"default_theme"`
+	Notifications   bool            `json:"notifications_enabled"`
+	SMTP            smtpView        `json:"smtp"`
+	Translation     translationView `json:"translation"`
+	EnvOverrides    []string        `json:"env_overrides"`
+	SetupCompleted  string          `json:"setup_completed_at,omitempty"`
+}
+
+type translationView struct {
+	Provider  string `json:"provider"`
+	Endpoint  string `json:"endpoint"`
+	APIKeySet bool   `json:"api_key_set"`
 }
 
 type smtpView struct {
@@ -47,6 +55,10 @@ func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 		return settingsView{}, err
 	}
 	smtpCfg, err := s.settings.EffectiveSMTP(ctx)
+	if err != nil {
+		return settingsView{}, err
+	}
+	translateCfg, err := s.settings.Translation(ctx)
 	if err != nil {
 		return settingsView{}, err
 	}
@@ -72,6 +84,11 @@ func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 			FromName:    smtpCfg.FromName,
 			Security:    smtpCfg.Security,
 			PasswordSet: smtpCfg.Password != "",
+		},
+		Translation: translationView{
+			Provider:  translateCfg.Provider,
+			Endpoint:  translateCfg.Endpoint,
+			APIKeySet: translateCfg.APIKey != "",
 		},
 	}, nil
 }
@@ -101,6 +118,10 @@ type settingsPatch struct {
 	SMTPFrom          *string `json:"smtp_from"`
 	SMTPFromName      *string `json:"smtp_from_name"`
 	SMTPSecurity      *string `json:"smtp_security"`
+	TranslateProvider *string `json:"translate_provider"`
+	TranslateEndpoint *string `json:"translate_endpoint"`
+	TranslateAPIKey   *string `json:"translate_api_key"`
+	ClearTranslateKey bool    `json:"clear_translate_api_key"`
 }
 
 func (s *Server) handleSettingsSave(w http.ResponseWriter, r *http.Request, sess store.Session) {
@@ -226,6 +247,34 @@ func (s *Server) handleSettingsSave(w http.ResponseWriter, r *http.Request, sess
 			return
 		}
 		values[settings.KeySMTPSecurity] = sec
+	}
+	if req.TranslateProvider != nil {
+		provider := strings.ToLower(strings.TrimSpace(*req.TranslateProvider))
+		if provider != "" && provider != translate.ProviderLibreTranslate && provider != translate.ProviderDeepL {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Unsupported translation provider")
+			return
+		}
+		values[settings.KeyTranslateProvider] = provider
+	}
+	if req.TranslateEndpoint != nil {
+		endpoint := strings.TrimSpace(*req.TranslateEndpoint)
+		if endpoint != "" {
+			u, err := url.Parse(endpoint)
+			if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				writeError(w, http.StatusBadRequest, "invalid_request", "Translation endpoint must be an absolute http(s) URL")
+				return
+			}
+		}
+		values[settings.KeyTranslateEndpoint] = endpoint
+	}
+	if req.ClearTranslateKey {
+		values[settings.KeyTranslateAPIKey] = ""
+	} else if req.TranslateAPIKey != nil && *req.TranslateAPIKey != "" {
+		if strings.ContainsAny(*req.TranslateAPIKey, "\x00\r\n") {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid translation API key")
+			return
+		}
+		values[settings.KeyTranslateAPIKey] = strings.TrimSpace(*req.TranslateAPIKey)
 	}
 	if err := s.settings.Update(r.Context(), values); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "Could not save settings")

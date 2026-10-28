@@ -11,7 +11,7 @@
       const state = HP.state;
       const route = HP.route;
       const confirm = PrimeVue.useConfirm();
-      const validTabs = ['general', 'email', 'languages', 'profile'];
+      const validTabs = ['general', 'email', 'translation', 'languages', 'profile'];
       const tab = ref(validTabs.indexOf(route.query.tab) >= 0 ? route.query.tab : 'general');
       const settings = ref(null);
       const system = ref(null);
@@ -19,6 +19,7 @@
       const error = ref('');
       const savingGeneral = ref(false);
       const savingEmail = ref(false);
+      const savingTranslation = ref(false);
       const savingProfile = ref(false);
       const savingPassword = ref(false);
       const testingEmail = ref(false);
@@ -28,6 +29,7 @@
         enabled: false, host: '', port: 587, username: '', password: '', from: '', from_name: 'Hugo Panel',
         security: 'starttls', notifications_enabled: true, clear_password: false
       });
+      const translation = reactive({ provider: '', endpoint: '', api_key: '', clear_key: false });
       const profile = reactive({ email: '', language: 'en', theme: 'system' });
       const password = reactive({ current: '', next: '', confirm: '' });
       const languages = computed(() => state.languages || []);
@@ -43,6 +45,11 @@
         { label: t('settings.security_starttls', {}, 'STARTTLS (recommended)'), value: 'starttls' },
         { label: t('settings.security_tls', {}, 'Implicit TLS'), value: 'tls' },
         { label: t('settings.security_none', {}, 'None'), value: 'none' }
+      ]);
+      const providerOptions = computed(() => [
+        { label: t('settings.translation_off', {}, 'Disabled'), value: '' },
+        { label: 'LibreTranslate', value: 'libretranslate' },
+        { label: 'DeepL', value: 'deepl' }
       ]);
       const addVisible = ref(false);
       const adding = ref(false);
@@ -68,6 +75,11 @@
         email.from_name = settings.value.smtp.from_name || 'Hugo Panel';
         email.security = settings.value.smtp.security || 'starttls';
         email.notifications_enabled = !!settings.value.notifications_enabled;
+        const tr = settings.value.translation || {};
+        translation.provider = tr.provider || '';
+        translation.endpoint = tr.endpoint || '';
+        translation.api_key = '';
+        translation.clear_key = false;
         profile.email = state.user.email || '';
         profile.language = state.user.language || 'en';
         profile.theme = state.user.theme || 'system';
@@ -117,6 +129,21 @@
           HP.toast('success', t('settings.saved', {}, 'Settings saved'));
         } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
         finally { savingEmail.value = false; }
+      }
+      async function saveTranslation() {
+        savingTranslation.value = true;
+        error.value = '';
+        try {
+          const body = {
+            translate_provider: translation.provider, translate_endpoint: translation.endpoint,
+            clear_translate_api_key: translation.clear_key
+          };
+          if (translation.api_key) body.translate_api_key = translation.api_key;
+          settings.value = await HP.api('/settings', { method: 'PUT', body });
+          fill();
+          HP.toast('success', t('settings.saved', {}, 'Settings saved'));
+        } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
+        finally { savingTranslation.value = false; }
       }
       async function testEmail() {
         if (!testTo.value.trim()) { HP.toast('error', t('settings.recipient_required', {}, 'Enter a recipient email')); return; }
@@ -250,10 +277,10 @@
       function userSince(ts) { return ts ? HP.formatDate(new Date(ts * 1000).toISOString()) : '—'; }
       onMounted(load);
       return {
-        state, tab, settings, system, loading, error, savingGeneral, savingEmail, savingProfile, savingPassword,
-        testingEmail, testTo, general, email, profile, password, languages, envOverrides, smtpEnvOverrides,
-        langOptions, themeOptions, securityOptions, addVisible, adding, addForm, fileInput, addError,
-        isEnv, hasSmtpEnv, load, saveGeneral, saveEmail, testEmail, saveProfile, changePassword, openAdd,
+        state, tab, settings, system, loading, error, savingGeneral, savingEmail, savingTranslation, savingProfile, savingPassword,
+        testingEmail, testTo, general, email, translation, profile, password, languages, envOverrides, smtpEnvOverrides,
+        langOptions, themeOptions, securityOptions, providerOptions, addVisible, adding, addForm, fileInput, addError,
+        isEnv, hasSmtpEnv, load, saveGeneral, saveEmail, saveTranslation, testEmail, saveProfile, changePassword, openAdd,
         chooseTranslationFile, onTranslationFile, addTranslation, downloadTemplate, deleteTranslation,
         uptime, userSince, initials: HP.initials, formatDateTime: HP.formatDateTime, formatBytes: HP.formatBytes, t
       };
@@ -273,6 +300,7 @@
           <PTabList>
             <PTab value="general"><i class="pi pi-sliders-h"></i> {{ t('settings.general', {}, 'General') }}</PTab>
             <PTab value="email"><i class="pi pi-envelope"></i> {{ t('settings.email', {}, 'Email') }}</PTab>
+            <PTab value="translation"><i class="pi pi-sparkles"></i> {{ t('settings.translation', {}, 'Translation') }}</PTab>
             <PTab value="languages"><i class="pi pi-language"></i> {{ t('settings.languages', {}, 'Languages') }}</PTab>
             <PTab value="profile"><i class="pi pi-user"></i> {{ t('settings.profile', {}, 'Profile') }}</PTab>
           </PTabList>
@@ -350,6 +378,29 @@
                     <label class="field"><span>{{ t('settings.recipient', {}, 'Recipient') }}</span><PInputText v-model="testTo" type="email" placeholder="you@example.com" /></label>
                     <PButton :label="t('settings.send_test', {}, 'Send test email')" icon="pi pi-send" :loading="testingEmail" @click="testEmail" outlined />
                     <PMessage class="mt-3" severity="info" :closable="false">{{ t('settings.smtp_note', {}, 'Password reset links use your public panel URL. Build failure notices can be disabled above.') }}</PMessage>
+                  </template>
+                </PCard>
+              </div>
+            </PTabPanel>
+
+            <PTabPanel value="translation">
+              <div class="settings-grid">
+                <PCard class="panel-card">
+                  <template #content>
+                    <div class="panel-head"><div><h2>{{ t('settings.translation_title', {}, 'Title translation') }}</h2><p>{{ t('settings.translation_hint', {}, 'Turns article titles into English file names in the editor.') }}</p></div></div>
+                    <div class="form-stack">
+                      <label class="field"><span>{{ t('settings.translation_provider', {}, 'Provider') }}</span><PSelect v-model="translation.provider" :options="providerOptions" optionLabel="label" optionValue="value" class="w-full" /></label>
+                      <label class="field"><span>{{ t('settings.translation_endpoint', {}, 'Endpoint') }}</span><PInputText v-model="translation.endpoint" class="mono-input" placeholder="https://libretranslate.com/translate" /><small class="field-hint">{{ t('settings.translation_endpoint_hint', {}, 'Leave blank to use the provider default.') }}</small></label>
+                      <label class="field"><span>{{ t('settings.translation_api_key', {}, 'API key') }}</span><PPassword v-model="translation.api_key" :feedback="false" toggleMask inputClass="w-full" :placeholder="settings.translation.api_key_set ? t('settings.password_keep', {}, 'Saved — leave blank to keep') : ''" autocomplete="new-password" /><small class="field-hint">{{ t('settings.translation_api_key_hint', {}, 'Stored on the server and never returned by the API.') }}</small></label>
+                      <div v-if="settings.translation.api_key_set" class="check-row"><PCheckbox v-model="translation.clear_key" binary /><span>{{ t('settings.translation_clear_key', {}, 'Remove the saved API key') }}</span></div>
+                      <PButton :label="t('common.save_changes', {}, 'Save changes')" icon="pi pi-check" :loading="savingTranslation" @click="saveTranslation" class="btn-primary" />
+                    </div>
+                  </template>
+                </PCard>
+                <PCard class="panel-card">
+                  <template #content>
+                    <div class="panel-head"><div><h2>{{ t('settings.translation_help', {}, 'How it works') }}</h2><p>{{ t('settings.translation_help_hint', {}, 'What happens when no provider is set.') }}</p></div></div>
+                    <PMessage severity="info" :closable="false">{{ t('settings.translation_note', {}, 'When a provider is configured, the “English” button in the editor translates the title and slugifies it. Without a provider, or if the request fails, English titles are still converted locally and Chinese titles fall back to a date-based name.') }}</PMessage>
                   </template>
                 </PCard>
               </div>

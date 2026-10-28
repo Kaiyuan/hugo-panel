@@ -18,7 +18,8 @@
 ## 功能
 
 - **首次启动向导**：创建管理员账户，密码使用 bcrypt 存储。
-- **内容管理**：Markdown 页面/文章的新建、编辑、重命名、删除、搜索、筛选和分页；YAML / TOML / JSON front matter；标签、分类、草稿、定时发布和自定义字段；Markdown 实时预览。
+- **内容管理**：Markdown 页面/文章的新建、编辑、重命名、删除、搜索、筛选和分页；YAML / TOML / JSON front matter；标签、分类、草稿、定时发布和自定义字段；Markdown 实时预览。编辑器支持格式工具栏、Markdown 语法高亮、媒体插入和从媒体库选择封面；文件路径通过 `content/` 子目录选择，文件名可一键翻译为英文，URL 为空时自动按目录和文件名生成。
+- **标题翻译**：编辑器的「英文」按钮可把文章标题翻译成英文文件名，支持 LibreTranslate 和 DeepL；在 **设置 → 翻译** 中配置，密钥只保存在服务端。未配置或请求失败时按本地规则生成，纯中文标题会回退为基于日期的文件名。
 - **主题管理**：列出 `themes/` 下的主题，启用主题，从 Git 安装、更新、移除主题；可视化编辑站点配置、主题参数和菜单。
 - **插件管理**：以 Hugo Modules 方式安装/移除插件，执行 `hugo mod tidy`，并显示命令输出与工具链状态。
 - **媒体库**：支持本机目录、S3（含 MinIO 等兼容服务）和 WebDAV 存储库；按文件夹浏览、上传、预览、复制 URL / Markdown、移动、复制和删除。可预览图片、视频、音频、PDF 与文本，其他文档可直接下载；编辑器内可打开媒体选择器插入 URL 或 Markdown。
@@ -281,6 +282,7 @@ internal/settings       设置与环境变量覆盖
 internal/hugo           内容、front matter、配置、主题、模块、构建
 internal/media          媒体存储库（本机目录、S3、WebDAV）与文件操作
 internal/mailer         SMTP、密码重置/构建失败邮件
+internal/translate      标题翻译（LibreTranslate / DeepL）
 internal/i18n           语言发现、按需加载、自定义翻译
 internal/server         路由、鉴权、CSRF、安全头、API
 web/static              Vue 3 + PrimeVue 单页应用、PWA、内置依赖

@@ -75,6 +75,7 @@ type SectionInfo struct {
 
 type ContentMeta struct {
 	Sections    []SectionInfo `json:"sections"`
+	Directories []string      `json:"directories"`
 	Tags        []string      `json:"tags"`
 	Categories  []string      `json:"categories"`
 	Exists      bool          `json:"exists"`
@@ -388,7 +389,7 @@ func (s *Site) ContentMeta() (ContentMeta, error) {
 		return ContentMeta{}, err
 	}
 	_, statErr := os.Stat(s.ContentDir())
-	meta := ContentMeta{Exists: statErr == nil, Initialized: s.ConfigExists(), Sections: []SectionInfo{}, Tags: []string{}, Categories: []string{}}
+	meta := ContentMeta{Exists: statErr == nil, Initialized: s.ConfigExists(), Sections: []SectionInfo{}, Directories: []string{}, Tags: []string{}, Categories: []string{}}
 	sectionCounts := map[string]int{}
 	tagSet := map[string]bool{}
 	catSet := map[string]bool{}
@@ -425,7 +426,44 @@ func (s *Site) ContentMeta() (ContentMeta, error) {
 	}
 	sort.Strings(meta.Tags)
 	sort.Strings(meta.Categories)
+	meta.Directories = s.contentDirectories()
 	return meta, nil
+}
+
+// contentDirectories lists every directory inside content/ using slash
+// separators. Hidden folders and dependency folders are skipped, matching the
+// content scanner.
+func (s *Site) contentDirectories() []string {
+	out := []string{}
+	root := s.ContentDir()
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			if errors.Is(walkErr, fs.ErrNotExist) {
+				return nil
+			}
+			return walkErr
+		}
+		if !d.IsDir() {
+			return nil
+		}
+		if path != root {
+			name := d.Name()
+			if strings.HasPrefix(name, ".") || name == "node_modules" {
+				return filepath.SkipDir
+			}
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil || rel == "." {
+			return nil
+		}
+		out = append(out, filepath.ToSlash(rel))
+		return nil
+	})
+	if err != nil {
+		return out
+	}
+	sort.Strings(out)
+	return out
 }
 
 func (s *Site) ReadContent(rel string) (ContentItem, error) {

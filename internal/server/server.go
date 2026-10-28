@@ -27,6 +27,7 @@ import (
 	"github.com/Kaiyuan/hugo-panel/internal/media"
 	"github.com/Kaiyuan/hugo-panel/internal/settings"
 	"github.com/Kaiyuan/hugo-panel/internal/store"
+	"github.com/Kaiyuan/hugo-panel/internal/translate"
 	"github.com/Kaiyuan/hugo-panel/web"
 )
 
@@ -40,6 +41,7 @@ type Server struct {
 	mailer       *mailer.Mailer
 	hugo         *hugo.Service
 	media        *media.Manager
+	translator   *translate.Client
 	logger       *slog.Logger
 	version      string
 	assetVersion string
@@ -76,6 +78,7 @@ func New(cfg *config.Config, st *store.Store, set *settings.Manager, tr *i18n.Ma
 		mailer:       ml,
 		hugo:         hs,
 		media:        media.NewManager(st, func(ctx context.Context) string { return set.HugoDir(ctx) }),
+		translator:   translate.New(),
 		logger:       logger,
 		version:      version,
 		assetVersion: computeAssetVersion(version, index, staticFS),
@@ -141,6 +144,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/content", s.requireAuth(s.handleContentList))
 	mux.HandleFunc("GET /api/content/meta", s.requireAuth(s.handleContentMeta))
 	mux.HandleFunc("GET /api/content/item", s.requireAuth(s.handleContentGet))
+	mux.HandleFunc("POST /api/content/slug", s.requireAuth(s.handleContentSlug))
 	mux.HandleFunc("POST /api/content", s.requireAuth(s.handleContentCreate))
 	mux.HandleFunc("PUT /api/content", s.requireAuth(s.handleContentUpdate))
 	mux.HandleFunc("DELETE /api/content", s.requireAuth(s.handleContentDelete))
