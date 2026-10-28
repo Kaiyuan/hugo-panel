@@ -7,7 +7,7 @@ services:
       args:
         # Go module proxy used while building the image.
         # GOPROXY: ${GOPROXY:-https://goproxy.cn,direct}
-        # VERSION: ${VERSION:-0.0.2}
+        # VERSION: ${VERSION:-0.0.3}
         COMMIT: ${COMMIT:-none}
         BUILD_TIME: ${BUILD_TIME:-unknown}
     # Local tag for the image built above. Nothing is pulled from a registry.

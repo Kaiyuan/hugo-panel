@@ -2,7 +2,7 @@
 
 FROM golang:1.24-alpine AS build
 
-ARG VERSION=0.0.2
+ARG VERSION=0.0.3
 ARG COMMIT=none
 ARG BUILD_TIME=unknown
 ARG GOPROXY=https://goproxy.cn,direct
