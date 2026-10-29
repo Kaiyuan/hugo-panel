@@ -33,9 +33,11 @@ type dashboardResponse struct {
 		Initialized bool   `json:"initialized"`
 	} `json:"site"`
 	Hugo struct {
-		Available bool   `json:"available"`
-		Version   string `json:"version"`
-		Dir       string `json:"dir"`
+		Available     bool   `json:"available"`
+		Version       string `json:"version"`
+		LatestVersion string `json:"latest_version"`
+		Outdated      bool   `json:"outdated"`
+		Dir           string `json:"dir"`
 	} `json:"hugo"`
 	Build *hugo.BuildResult `json:"build"`
 	Media hugo.MediaStats   `json:"media"`
@@ -140,6 +142,9 @@ func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request, sess st
 	}
 	resp.Hugo.Dir = site.Dir
 	resp.Hugo.Version, resp.Hugo.Available = s.hugo.HugoVersion(ctx, site)
+	resp.Hugo.LatestVersion = s.hugo.LatestHugoVersion(ctx)
+	resp.Hugo.Outdated = resp.Hugo.Available && resp.Hugo.LatestVersion != "" && resp.Hugo.Version != "" &&
+		!hugo.HugoVersionAtLeast(resp.Hugo.Version, resp.Hugo.LatestVersion)
 	resp.Build = s.hugo.LastBuild()
 	if stats, err := site.MediaStats(); err == nil {
 		resp.Media = stats

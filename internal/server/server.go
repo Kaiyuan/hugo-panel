@@ -733,8 +733,6 @@ func writeHugoError(w http.ResponseWriter, err error) {
 			status = http.StatusConflict
 		case "hugo_not_found":
 			status = http.StatusServiceUnavailable
-		case "hugo_outdated":
-			status = http.StatusPreconditionFailed
 		case "git_failed", "smtp_failed":
 			status = http.StatusBadGateway
 		case "server_error":

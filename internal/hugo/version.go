@@ -2,7 +2,6 @@ package hugo
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
@@ -10,12 +9,6 @@ import (
 	"strings"
 	"time"
 )
-
-// MinHugoVersion is the oldest Hugo release this panel accepts before creating
-// a new site. Themes listed on themes.gohugo.io track recent Hugo releases, so
-// a stale binary produces sites that most themes cannot render. Keep this in
-// sync with the HUGO_VERSION pinned in the Dockerfile.
-const MinHugoVersion = "0.169.0"
 
 var hugoVersionRe = regexp.MustCompile(`\bv?(\d+)\.(\d+)\.(\d+)`)
 
@@ -46,8 +39,7 @@ func versionNumbers(v string) ([3]int, bool) {
 }
 
 // HugoVersionAtLeast reports whether version is greater than or equal to
-// minimum. Unparsable versions are treated as too old unless the minimum is
-// unparsable as well.
+// minimum. Unparsable versions are treated as older.
 func HugoVersionAtLeast(version, minimum string) bool {
 	cur, ok := versionNumbers(version)
 	if !ok {
@@ -65,9 +57,10 @@ func HugoVersionAtLeast(version, minimum string) bool {
 	return true
 }
 
-// EnsureHugoVersion runs the configured Hugo binary and verifies that it is
-// new enough to render current themes. It returns the detected version.
-func (s *Site) EnsureHugoVersion(ctx context.Context) (string, error) {
+// HugoVersion runs the configured Hugo binary and returns its normalized
+// version. It is used by the init dialog and the settings page to compare the
+// installed binary with the latest upstream release.
+func (s *Site) HugoVersion(ctx context.Context) (string, error) {
 	if _, err := exec.LookPath(s.Binary); err != nil {
 		if info, statErr := os.Stat(s.Binary); statErr != nil || info.IsDir() {
 			return "", errf("hugo_not_found", "Hugo binary not found: "+s.Binary)
@@ -84,12 +77,6 @@ func (s *Site) EnsureHugoVersion(ctx context.Context) (string, error) {
 	version, ok := ParseHugoVersion(res.Output)
 	if !ok {
 		return "", errf("hugo_not_found", "Could not detect the Hugo version from: "+firstLine(res.Output))
-	}
-	if !HugoVersionAtLeast(version, MinHugoVersion) {
-		return version, errf("hugo_outdated", fmt.Sprintf(
-			"Hugo %s is too old. Version %s or newer is required for current themes. "+
-				"Update the panel image or install the latest Hugo and set its path in Settings → General.",
-			version, MinHugoVersion))
 	}
 	return version, nil
 }

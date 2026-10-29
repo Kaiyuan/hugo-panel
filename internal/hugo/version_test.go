@@ -3,7 +3,6 @@ package hugo
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -56,34 +55,25 @@ func fakeHugo(t *testing.T, output string) string {
 	return path
 }
 
-func TestEnsureHugoVersion(t *testing.T) {
-	site := &Site{Binary: fakeHugo(t, "hugo v0.169.1+extended linux/amd64")}
-	version, err := site.EnsureHugoVersion(t.Context())
+func TestSiteHugoVersion(t *testing.T) {
+	site := &Site{Binary: fakeHugo(t, "hugo v0.150.1+extended linux/amd64")}
+	version, err := site.HugoVersion(t.Context())
 	if err != nil {
 		t.Fatal(err)
-	}
-	if version != "0.169.1" {
-		t.Fatalf("version = %q", version)
-	}
-
-	site.Binary = fakeHugo(t, "hugo v0.150.1+extended linux/amd64")
-	version, err = site.EnsureHugoVersion(t.Context())
-	if err == nil {
-		t.Fatal("expected an outdated-version error")
 	}
 	if version != "0.150.1" {
 		t.Fatalf("version = %q", version)
 	}
-	he, ok := err.(*Error)
-	if !ok || he.Code != "hugo_outdated" {
-		t.Fatalf("unexpected error: %#v", err)
-	}
-	if !strings.Contains(he.Message, MinHugoVersion) {
-		t.Fatalf("message should mention the minimum version: %q", he.Message)
-	}
 
 	site.Binary = filepath.Join(t.TempDir(), "missing-hugo")
-	if _, err := site.EnsureHugoVersion(t.Context()); err == nil {
+	if _, err := site.HugoVersion(t.Context()); err == nil {
 		t.Fatal("expected a missing-binary error")
+	} else if he, ok := err.(*Error); !ok || he.Code != "hugo_not_found" {
+		t.Fatalf("unexpected error: %#v", err)
+	}
+
+	site.Binary = fakeHugo(t, "hugo unknown build")
+	if _, err := site.HugoVersion(t.Context()); err == nil {
+		t.Fatal("expected an unparsable-version error")
 	}
 }

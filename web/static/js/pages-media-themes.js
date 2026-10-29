@@ -69,7 +69,7 @@
       const initVisible = ref(false);
       const initLoading = ref(false);
       const initForm = reactive({ title: '', base_url: '', language: 'en' });
-      const hugoInfo = reactive({ checked: false, version: '', min: '', ok: true });
+      const hugoInfo = reactive({ checked: false, version: '', latest: '', outdated: false, updateUrl: 'https://gohugo.io/installation/' });
       const initError = ref('');
       const form = reactive({
         site_title: '', base_url: '', language_code: '', default_content_language: '', theme: ''
@@ -153,17 +153,17 @@
       async function loadHugoInfo() {
         hugoInfo.checked = false;
         hugoInfo.version = '';
-        hugoInfo.min = '';
-        hugoInfo.ok = true;
+        hugoInfo.latest = '';
+        hugoInfo.outdated = false;
         try {
           const sys = await HP.api('/system');
           hugoInfo.version = sys.hugo_version || '';
-          hugoInfo.min = sys.hugo_min_version || '';
-          hugoInfo.ok = sys.hugo_supported !== false;
+          hugoInfo.latest = sys.hugo_latest_version || '';
+          hugoInfo.outdated = !!sys.hugo_outdated;
+          if (sys.hugo_update_url) hugoInfo.updateUrl = sys.hugo_update_url;
           hugoInfo.checked = true;
         } catch (e) {
-          // Leave the state unknown; the backend rejects initialization if the
-          // binary is missing or too old.
+          // Leave the state unknown; the check is only advisory.
         }
       }
       async function initSite() {
@@ -273,7 +273,10 @@
           <div class="form-stack">
             <PMessage severity="info" :closable="false">{{ t('themes.init_hint', {}, 'This creates the standard Hugo folders and a hugo.toml in your configured directory.') }}</PMessage>
             <PMessage v-if="hugoInfo.checked && !hugoInfo.version" severity="warn" :closable="false">{{ t('themes.hugo_missing', {}, 'Hugo was not found. Install the latest Hugo and set its path in Settings → General.') }}</PMessage>
-            <PMessage v-else-if="hugoInfo.checked && !hugoInfo.ok" severity="error" :closable="false">{{ t('themes.hugo_outdated', { version: hugoInfo.version, required: hugoInfo.min }, 'Hugo {version} is too old. Version {required} or newer is required for current themes.') }}</PMessage>
+            <PMessage v-else-if="hugoInfo.checked && hugoInfo.outdated" severity="warn" :closable="false">
+              {{ t('themes.hugo_outdated', { version: hugoInfo.version, latest: hugoInfo.latest }, 'Hugo {version} is installed, but {latest} is available. Update Hugo if themes do not render correctly.') }}
+              <a :href="hugoInfo.updateUrl" target="_blank" rel="noopener">{{ t('common.update_hugo', {}, 'How to update Hugo') }}</a>
+            </PMessage>
             <small v-else-if="hugoInfo.checked && hugoInfo.version" class="field-hint"><i class="pi pi-info-circle"></i>{{ t('themes.hugo_detected', { version: hugoInfo.version }, 'Hugo {version} detected.') }}</small>
             <PMessage v-if="initError" severity="error" :closable="false">{{ initError }}</PMessage>
             <label class="field"><span>{{ t('themes.site_title', {}, 'Site title') }}</span><PInputText v-model="initForm.title" /></label>
@@ -282,7 +285,7 @@
           </div>
           <template #footer>
             <PButton text :label="t('common.cancel', {}, 'Cancel')" @click="initVisible = false" />
-            <PButton :label="t('themes.init_site', {}, 'Initialize site')" :loading="initLoading" :disabled="!hugoInfo.ok || (hugoInfo.checked && !hugoInfo.version)" @click="initSite" />
+            <PButton :label="t('themes.init_site', {}, 'Initialize site')" :loading="initLoading" @click="initSite" />
           </template>
         </PDialog>
       </div>

@@ -170,7 +170,7 @@
                   </div>
                   <dl class="key-list">
                     <div><dt>{{ t('dashboard.active_theme', {}, 'Active theme') }}</dt><dd>{{ data.themes.active || '—' }}</dd></div>
-                    <div><dt>{{ t('dashboard.hugo_version', {}, 'Hugo') }}</dt><dd>{{ data.hugo.available ? data.hugo.version : t('dashboard.hugo_missing', {}, 'Not found') }}</dd></div>
+                    <div><dt>{{ t('dashboard.hugo_version', {}, 'Hugo') }}</dt><dd>{{ data.hugo.available ? data.hugo.version : t('dashboard.hugo_missing', {}, 'Not found') }} <PTag v-if="data.hugo.outdated" severity="warn" :value="t('dashboard.hugo_update', {}, 'Update available')" /></dd></div>
                     <div><dt>{{ t('dashboard.media_files', {}, 'Media') }}</dt><dd>{{ formatNumber(data.media.files) }} · {{ formatBytes(data.media.bytes) }}</dd></div>
                   </dl>
                   <div class="progress-block">

@@ -26,7 +26,6 @@ type PluginState struct {
 	GoAvailable   bool           `json:"go_available"`
 	GitAvailable  bool           `json:"git_available"`
 	HugoVersion   string         `json:"hugo_version,omitempty"`
-	HugoOutdated  bool           `json:"hugo_outdated,omitempty"`
 	ConfigPath    string         `json:"config_path"`
 	Initialized   bool           `json:"initialized"`
 }
@@ -95,7 +94,6 @@ func (s *Site) PluginState(ctx context.Context) (PluginState, error) {
 		if res.Err == nil {
 			if version, ok := ParseHugoVersion(res.Output); ok {
 				state.HugoVersion = version
-				state.HugoOutdated = !HugoVersionAtLeast(version, MinHugoVersion)
 			} else {
 				state.HugoVersion = firstLine(res.Output)
 			}

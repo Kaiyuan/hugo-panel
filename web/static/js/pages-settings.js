@@ -353,7 +353,11 @@
                     <div class="panel-head"><div><h2>{{ t('settings.hugo', {}, 'Hugo environment') }}</h2><p>{{ t('settings.hugo_hint', {}, 'Where the panel reads content and writes builds.') }}</p></div></div>
                     <div class="form-stack">
                       <label class="field"><span>{{ t('settings.hugo_dir', {}, 'Hugo site directory') }}</span><PInputText v-model="general.hugo_dir" class="mono-input" :placeholder="'/app/hugo'" /><small class="field-hint">{{ t('settings.hugo_dir_hint', {}, 'Default in Docker: /app/hugo') }}</small></label>
-                      <label class="field"><span>{{ t('settings.hugo_binary', {}, 'Hugo binary') }}</span><PInputText v-model="general.hugo_binary" class="mono-input" placeholder="hugo" /><small class="field-hint">{{ t('settings.hugo_binary_hint', { version: system.hugo_min_version || '0.169.0' }, 'Hugo {version} or newer is required for current themes.') }}</small></label>
+                      <label class="field"><span>{{ t('settings.hugo_binary', {}, 'Hugo binary') }}</span><PInputText v-model="general.hugo_binary" class="mono-input" placeholder="hugo" /><small class="field-hint">{{ t('settings.hugo_binary_hint', {}, 'The panel checks for the latest Hugo release automatically.') }}</small></label>
+                      <PMessage v-if="system.hugo_outdated" severity="warn" :closable="false">
+                        {{ t('themes.hugo_outdated', { version: system.hugo_version, latest: system.hugo_latest_version }, 'Hugo {version} is installed, but {latest} is available. Update Hugo if themes do not render correctly.') }}
+                        <a :href="system.hugo_update_url" target="_blank" rel="noopener">{{ t('common.update_hugo', {}, 'How to update Hugo') }}</a>
+                      </PMessage>
                       <label class="field"><span>{{ t('settings.public_url', {}, 'Public panel URL') }} <em v-if="isEnv('public_url')" class="env-badge">ENV</em></span><PInputText v-model="general.public_url" :disabled="isEnv('public_url')" class="mono-input" placeholder="https://panel.example.com" /><small class="field-hint">{{ t('settings.public_url_hint', {}, 'Used in password reset links. Leave blank to infer from the request.') }}</small></label>
                       <div class="field-grid">
                         <label class="field"><span>{{ t('settings.default_language', {}, 'Default language') }}</span><PSelect v-model="general.default_language" :options="langOptions" optionLabel="label" optionValue="value" class="w-full" /></label>

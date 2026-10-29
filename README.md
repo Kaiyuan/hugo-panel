@@ -21,7 +21,7 @@
 - **内容管理**：Markdown 页面/文章的新建、编辑、重命名、删除、搜索、筛选和分页；YAML / TOML / JSON front matter；标签、分类、草稿、定时发布和自定义字段；Markdown 实时预览。编辑器支持格式工具栏、Markdown 语法高亮、媒体插入和从媒体库选择封面；文件路径通过 `content/` 子目录选择并可直接在下拉菜单中新建文件夹（支持 `posts/2026` 这样的多级目录），文件名可一键翻译为英文，URL 为空时自动按目录和文件名生成。
 - **标题翻译**：编辑器的「英文」按钮可把文章标题翻译成英文文件名，支持 LibreTranslate、DeepL 和兼容 OpenAI 的 AI 服务；密钥只保存在服务端。未配置或请求失败时按本地规则生成，纯中文标题会回退为基于日期的文件名。
 - **AI 写作助手**：在 **设置 → AI** 中接入任意兼容 OpenAI 的 chat completions 服务（OpenAI、DeepSeek、Moonshot、通义千问、SiliconFlow、OpenRouter、Ollama、LM Studio 等），编辑器工具栏的 AI 按钮可润色、续写、生成摘要或执行自定义指令，结果可预览后再应用。未配置专用翻译服务时，AI 也会用于生成英文文件名。文章内容会发送到所配置的服务商。
-- **主题管理**：列出 `themes/` 下的主题，启用主题，从 Git 安装、更新、移除主题；可视化编辑站点配置、主题参数和菜单。初始化站点前会校验 Hugo 版本，低于 0.169.0 时拒绝创建，避免与官网最新主题不兼容。
+- **主题管理**：列出 `themes/` 下的主题，启用主题，从 Git 安装、更新、移除主题；可视化编辑站点配置、主题参数和菜单。面板会自动检查 Hugo 最新版本，初始化对话框、设置页和仪表盘会在版本落后时提示升级，避免与官网最新主题不兼容。
 - **插件管理**：以 Hugo Modules 方式安装/移除插件，执行 `hugo mod tidy`，并显示命令输出与工具链状态。
 - **媒体库**：支持本机目录、S3（含 MinIO 等兼容服务）和 WebDAV 存储库；按文件夹浏览、上传、预览、复制 URL / Markdown、移动、复制和删除。可预览图片、视频、音频、PDF 与文本，其他文档可直接下载；编辑器内可打开媒体选择器插入 URL 或 Markdown。
 - **构建**：在面板中运行 `hugo --gc --minify --cleanDestinationDir`，保留最后一次构建结果；构建失败时可邮件通知管理员。
@@ -34,6 +34,8 @@
 ## Docker 部署（推荐）
 
 镜像地址：`https://hub.docker.com/r/kaiyuan/hugo-panel`
+
+镜像内置的 Hugo 在构建时自动取上游最新版本，无需随 Hugo 发版修改项目文件；如需固定版本，构建时传入 `--build-arg HUGO_VERSION=0.169.0`。面板运行后仍会定期检查上游版本并提示升级。
 
 ```bash
 docker run -d \
@@ -155,7 +157,7 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 
 ## 开发
 
-需要 Go 1.24+、GCC（SQLite 驱动使用 CGO）以及 Hugo 0.169.0 或更高版本（extended 版推荐）。未安装 Hugo 也可以启动面板，但初始化站点和构建会失败。无需 Node.js。
+需要 Go 1.24+、GCC（SQLite 驱动使用 CGO）以及 Hugo（extended 版推荐，面板会在有新版本时提示升级）。未安装 Hugo 也可以启动面板，但初始化后的构建会失败。无需 Node.js。
 
 ```bash
 git clone https://github.com/Kaiyuan/hugo-panel.git

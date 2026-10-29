@@ -27,10 +27,10 @@ RUN CGO_ENABLED=1 go build -trimpath \
 # whole image back to Debian.
 FROM alpine:3.24
 
-# The extended binary bundled here is also the minimum version the panel
-# accepts when initializing a site. Keep it in sync with MinHugoVersion in
-# internal/hugo/version.go so official themes stay compatible.
-ARG HUGO_VERSION=0.169.0
+# The extended binary is resolved from the latest upstream release at build
+# time, so the image does not need a manual version bump for every Hugo
+# release. Pass --build-arg HUGO_VERSION=x.y.z to pin a specific version.
+ARG HUGO_VERSION=
 
 RUN set -eux; \
     apk add --no-cache \
@@ -40,6 +40,14 @@ RUN set -eux; \
       aarch64) hugo_arch=arm64 ;; \
       *) echo "unsupported architecture: $(apk --print-arch)" >&2; exit 1 ;; \
     esac; \
+    if [ -z "${HUGO_VERSION}" ]; then \
+      HUGO_VERSION="$(wget -qO- --tries=3 --timeout=60 https://api.github.com/repos/gohugoio/hugo/releases/latest \
+        | grep -o '"tag_name": *"[^"]*"' | head -n1 | sed 's/.*"v\([^"]*\)"/\1/')"; \
+    fi; \
+    if [ -z "${HUGO_VERSION}" ]; then \
+      echo "could not determine the latest Hugo version" >&2; exit 1; \
+    fi; \
+    echo "Installing Hugo ${HUGO_VERSION}"; \
     wget -q --tries=3 --timeout=60 -O /tmp/hugo.tar.gz "https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-${hugo_arch}.tar.gz"; \
     tar -xzf /tmp/hugo.tar.gz -C /usr/local/bin hugo; \
     rm -f /tmp/hugo.tar.gz; \

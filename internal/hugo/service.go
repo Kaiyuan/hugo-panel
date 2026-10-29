@@ -29,6 +29,11 @@ type Service struct {
 
 	versionMu    sync.Mutex
 	versionCache map[string]versionEntry
+
+	latestMu      sync.Mutex
+	latestVersion string
+	latestTTL     time.Duration
+	latestAt      time.Time
 }
 
 type versionEntry struct {
