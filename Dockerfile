@@ -27,7 +27,10 @@ RUN CGO_ENABLED=1 go build -trimpath \
 # whole image back to Debian.
 FROM alpine:3.24
 
-ARG HUGO_VERSION=0.150.1
+# The extended binary bundled here is also the minimum version the panel
+# accepts when initializing a site. Keep it in sync with MinHugoVersion in
+# internal/hugo/version.go so official themes stay compatible.
+ARG HUGO_VERSION=0.169.0
 
 RUN set -eux; \
     apk add --no-cache \

@@ -160,7 +160,11 @@ func (svc *Service) HugoVersion(ctx context.Context, site *Site) (string, bool) 
 	if _, err := exec.LookPath(site.Binary); err == nil {
 		res := runCommand(ctx, dir, 15*time.Second, nil, site.Binary, "version")
 		if res.Err == nil {
-			version = firstLine(res.Output)
+			if parsed, parsedOK := ParseHugoVersion(res.Output); parsedOK {
+				version = parsed
+			} else {
+				version = firstLine(res.Output)
+			}
 			ok = true
 		}
 	}

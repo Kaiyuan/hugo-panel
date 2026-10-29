@@ -44,11 +44,16 @@ func (s *Server) handleHugoInit(w http.ResponseWriter, r *http.Request, sess sto
 	if !decodeJSON(w, r, &req, 64*1024) {
 		return
 	}
-	if err := s.site(r.Context()).InitSite(req.Title, req.BaseURL, req.Language); err != nil {
+	site := s.site(r.Context())
+	if _, err := site.EnsureHugoVersion(r.Context()); err != nil {
 		writeHugoError(w, err)
 		return
 	}
-	cfg, err := s.site(r.Context()).LoadConfig()
+	if err := site.InitSite(req.Title, req.BaseURL, req.Language); err != nil {
+		writeHugoError(w, err)
+		return
+	}
+	cfg, err := site.LoadConfig()
 	if err != nil {
 		writeHugoError(w, err)
 		return
@@ -62,26 +67,28 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request, sess store
 	state, _ := site.PluginState(ctx)
 	cfg, _ := site.LoadConfig()
 	writeJSON(w, http.StatusOK, map[string]any{
-		"panel_version":  s.version,
-		"go_version":     runtime.Version(),
-		"os":             runtime.GOOS,
-		"arch":           runtime.GOARCH,
-		"uptime_seconds": int64(time.Since(s.started).Seconds()),
-		"data_dir":       s.cfg.DataDir,
-		"hugo_dir":       site.Dir,
-		"hugo_binary":    site.Binary,
-		"hugo_available": state.HugoAvailable,
-		"hugo_version":   state.HugoVersion,
-		"go_available":   state.GoAvailable,
-		"git_available":  state.GitAvailable,
-		"config_exists":  cfg.Exists,
-		"config_path":    cfg.ConfigPath,
-		"site_title":     cfg.SiteTitle,
-		"base_url":       cfg.BaseURL,
-		"active_theme":   cfg.Theme,
-		"content_dir":    site.ContentDir(),
-		"media_dir":      site.MediaRoot(),
-		"public_url":     s.settings.PublicURL(ctx),
+		"panel_version":    s.version,
+		"go_version":       runtime.Version(),
+		"os":               runtime.GOOS,
+		"arch":             runtime.GOARCH,
+		"uptime_seconds":   int64(time.Since(s.started).Seconds()),
+		"data_dir":         s.cfg.DataDir,
+		"hugo_dir":         site.Dir,
+		"hugo_binary":      site.Binary,
+		"hugo_available":   state.HugoAvailable,
+		"hugo_version":     state.HugoVersion,
+		"hugo_min_version": hugo.MinHugoVersion,
+		"hugo_supported":   state.HugoAvailable && hugo.HugoVersionAtLeast(state.HugoVersion, hugo.MinHugoVersion),
+		"go_available":     state.GoAvailable,
+		"git_available":    state.GitAvailable,
+		"config_exists":    cfg.Exists,
+		"config_path":      cfg.ConfigPath,
+		"site_title":       cfg.SiteTitle,
+		"base_url":         cfg.BaseURL,
+		"active_theme":     cfg.Theme,
+		"content_dir":      site.ContentDir(),
+		"media_dir":        site.MediaRoot(),
+		"public_url":       s.settings.PublicURL(ctx),
 	})
 }
 
