@@ -18,6 +18,11 @@
       const loading = ref(true);
       const error = ref('');
       const savingGeneral = ref(false);
+      const upgradingHugo = ref(false);
+      const upgradeVisible = ref(false);
+      const upgradeVersion = ref('');
+      const upgradeError = ref('');
+      const upgradeOutput = ref('');
       const savingEmail = ref(false);
       const savingTranslation = ref(false);
       const savingAI = ref(false);
@@ -26,7 +31,7 @@
       const savingPassword = ref(false);
       const testingEmail = ref(false);
       const testTo = ref('');
-      const general = reactive({ hugo_dir: '', hugo_binary: 'hugo', public_url: '', default_language: 'en', default_theme: 'system' });
+      const general = reactive({ hugo_dir: '', hugo_binary: 'hugo', public_url: '', default_language: 'en', default_theme: 'system', build_on_save: false });
       const email = reactive({
         enabled: false, host: '', port: 587, username: '', password: '', from: '', from_name: 'Hugo Panel',
         security: 'starttls', notifications_enabled: true, clear_password: false
@@ -69,6 +74,7 @@
         general.public_url = settings.value.public_url || '';
         general.default_language = settings.value.default_language || 'en';
         general.default_theme = settings.value.default_theme || 'system';
+        general.build_on_save = !!settings.value.build_on_save;
         email.enabled = !!settings.value.smtp.enabled;
         email.host = settings.value.smtp.host || '';
         email.port = settings.value.smtp.port || 587;
@@ -113,13 +119,48 @@
             method: 'PUT',
             body: {
               hugo_dir: general.hugo_dir, hugo_binary: general.hugo_binary, public_url: general.public_url,
-              default_language: general.default_language, default_theme: general.default_theme
+              default_language: general.default_language, default_theme: general.default_theme,
+              build_on_save: general.build_on_save
             }
           });
           fill();
           HP.toast('success', t('settings.saved', {}, 'Settings saved'));
         } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
         finally { savingGeneral.value = false; }
+      }
+      function openUpgrade() {
+        upgradeError.value = '';
+        upgradeOutput.value = '';
+        upgradeVersion.value = (system.value && system.value.hugo_latest_version) || '';
+        upgradeVisible.value = true;
+      }
+      async function runUpgrade() {
+        if (!upgradeVersion.value.trim()) { upgradeError.value = t('settings.hugo_upgrade_unavailable', {}, 'Enter a Hugo version to install.'); return; }
+        upgradingHugo.value = true;
+        upgradeError.value = '';
+        upgradeOutput.value = '';
+        try {
+          const res = await HP.api('/hugo/upgrade', { method: 'POST', body: { version: upgradeVersion.value.trim() } });
+          upgradeVisible.value = false;
+          if (res.up_to_date) {
+            HP.toast('info', t('settings.hugo_up_to_date', { version: res.version }, 'Hugo {version} is already installed'));
+          } else {
+            HP.toast('success', t('settings.hugo_upgraded', { version: res.version }, 'Hugo upgraded to {version}'));
+          }
+          if (res.binary) {
+            general.hugo_binary = res.binary;
+            if (settings.value) settings.value.hugo_binary = res.binary;
+          }
+          system.value = await HP.api('/system');
+          if (system.value && system.value.hugo_binary) general.hugo_binary = system.value.hugo_binary;
+        } catch (e) {
+          upgradeError.value = HP.errorText(e);
+          const compat = e && e.data && e.data.compatibility;
+          upgradeOutput.value = (compat && compat.output) || '';
+          HP.notifyError(e);
+        } finally {
+          upgradingHugo.value = false;
+        }
       }
       async function saveEmail() {
         savingEmail.value = true;
@@ -320,6 +361,7 @@
         state, tab, settings, system, loading, error, savingGeneral, savingEmail, savingTranslation, savingAI, savingProfile, savingPassword,
         testingEmail, testingAI, testTo, general, email, translation, ai, profile, password, languages, envOverrides, smtpEnvOverrides,
         langOptions, themeOptions, securityOptions, providerOptions, addVisible, adding, addForm, fileInput, addError,
+        upgradingHugo, upgradeVisible, upgradeVersion, upgradeError, upgradeOutput, openUpgrade, runUpgrade,
         isEnv, hasSmtpEnv, load, saveGeneral, saveEmail, saveTranslation, saveAI, testAI, testEmail, saveProfile, changePassword, openAdd,
         chooseTranslationFile, onTranslationFile, addTranslation, downloadTemplate, deleteTranslation,
         uptime, userSince, initials: HP.initials, formatDateTime: HP.formatDateTime, formatBytes: HP.formatBytes, t
@@ -354,10 +396,25 @@
                     <div class="form-stack">
                       <label class="field"><span>{{ t('settings.hugo_dir', {}, 'Hugo site directory') }}</span><PInputText v-model="general.hugo_dir" class="mono-input" :placeholder="'/app/hugo'" /><small class="field-hint">{{ t('settings.hugo_dir_hint', {}, 'Default in Docker: /app/hugo') }}</small></label>
                       <label class="field"><span>{{ t('settings.hugo_binary', {}, 'Hugo binary') }}</span><PInputText v-model="general.hugo_binary" class="mono-input" placeholder="hugo" /><small class="field-hint">{{ t('settings.hugo_binary_hint', {}, 'The panel checks for the latest Hugo release automatically.') }}</small></label>
+                      <div class="switch-row">
+                        <div><strong>{{ t('settings.build_on_save', {}, 'Build the site after saving') }}</strong><small>{{ t('settings.build_on_save_hint', {}, 'Runs a Hugo build in the background whenever an article is saved.') }}</small></div>
+                        <PToggleSwitch v-model="general.build_on_save" />
+                      </div>
                       <PMessage v-if="system.hugo_outdated" severity="warn" :closable="false">
                         {{ t('themes.hugo_outdated', { version: system.hugo_version, latest: system.hugo_latest_version }, 'Hugo {version} is installed, but {latest} is available. Update Hugo if themes do not render correctly.') }}
                         <a :href="system.hugo_update_url" target="_blank" rel="noopener">{{ t('common.update_hugo', {}, 'How to update Hugo') }}</a>
                       </PMessage>
+                      <div class="switch-row">
+                        <div>
+                          <strong>{{ t('settings.hugo_upgrade', {}, 'Upgrade Hugo') }}</strong>
+                          <small>{{ t('settings.hugo_upgrade_hint', {}, 'Download the latest extended Hugo and switch this site to it after checking active themes and plugins.') }}</small>
+                          <small v-if="system && system.hugo_version">
+                            {{ t('settings.hugo_upgrade_current', { version: system.hugo_version }, 'Installed: {version}') }}
+                            <template v-if="system.hugo_latest_version"> · {{ t('settings.hugo_upgrade_latest', { latest: system.hugo_latest_version }, 'Latest: {latest}') }}</template>
+                          </small>
+                        </div>
+                        <PButton :label="t('common.upgrade', {}, 'Upgrade')" icon="pi pi-cloud-download" @click="openUpgrade" />
+                      </div>
                       <label class="field"><span>{{ t('settings.public_url', {}, 'Public panel URL') }} <em v-if="isEnv('public_url')" class="env-badge">ENV</em></span><PInputText v-model="general.public_url" :disabled="isEnv('public_url')" class="mono-input" placeholder="https://panel.example.com" /><small class="field-hint">{{ t('settings.public_url_hint', {}, 'Used in password reset links. Leave blank to infer from the request.') }}</small></label>
                       <div class="field-grid">
                         <label class="field"><span>{{ t('settings.default_language', {}, 'Default language') }}</span><PSelect v-model="general.default_language" :options="langOptions" optionLabel="label" optionValue="value" class="w-full" /></label>
@@ -560,6 +617,23 @@
           <template #footer>
             <PButton text :label="t('common.cancel', {}, 'Cancel')" @click="addVisible = false" />
             <PButton :label="t('settings.add_translation', {}, 'Add translation')" icon="pi pi-plus" :loading="adding" @click="addTranslation" />
+          </template>
+        </PDialog>
+
+        <PDialog v-model:visible="upgradeVisible" modal :header="t('settings.hugo_upgrade', {}, 'Upgrade Hugo')" :style="{ width: '34rem', maxWidth: '94vw' }">
+          <div class="form-stack">
+            <PMessage severity="info" :closable="false">{{ t('settings.hugo_upgrade_confirm', { version: upgradeVersion || '…' }, 'Download Hugo {version} and switch to it? Active themes and plugins are checked before the switch.') }}</PMessage>
+            <PMessage v-if="system && system.hugo_version" severity="info" :closable="false">
+              {{ t('settings.hugo_upgrade_current', { version: system.hugo_version }, 'Installed: {version}') }}
+              <template v-if="system.hugo_latest_version"> · {{ t('settings.hugo_upgrade_latest', { latest: system.hugo_latest_version }, 'Latest: {latest}') }}</template>
+            </PMessage>
+            <label class="field"><span>{{ t('settings.hugo_upgrade_version', {}, 'Version to install') }}</span><PInputText v-model="upgradeVersion" placeholder="0.169.0" class="mono-input" /></label>
+            <PMessage v-if="upgradeError" severity="error" :closable="false">{{ upgradeError }}</PMessage>
+            <pre v-if="upgradeOutput" class="console-output">{{ upgradeOutput }}</pre>
+          </div>
+          <template #footer>
+            <PButton text :label="t('common.cancel', {}, 'Cancel')" @click="upgradeVisible = false" />
+            <PButton :label="t('common.upgrade', {}, 'Upgrade')" icon="pi pi-cloud-download" :loading="upgradingHugo" @click="runUpgrade" />
           </template>
         </PDialog>
       </div>

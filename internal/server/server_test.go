@@ -179,11 +179,15 @@ func TestSetupLoginCSRFAndContentFlow(t *testing.T) {
 
 func TestI18NAndSettingsEndpoints(t *testing.T) {
 	app := newTestApp(t)
-	res, _ := app.request("POST", "/api/setup", map[string]any{
+	res, state := app.request("POST", "/api/setup", map[string]any{
 		"username": "admin", "password": "password123", "email": "", "language": "zh-CN",
 	}, nil)
 	if res.StatusCode != 200 {
 		t.Fatalf("setup status %d", res.StatusCode)
+	}
+	csrf, _ := state["csrf"].(string)
+	if csrf == "" {
+		t.Fatal("setup did not return a CSRF token")
 	}
 	res, body := app.request("GET", "/api/i18n/zh-CN", nil, nil)
 	if res.StatusCode != 200 {
@@ -200,7 +204,14 @@ func TestI18NAndSettingsEndpoints(t *testing.T) {
 	if view["default_language"] != "zh-CN" {
 		t.Fatalf("default language: %#v", view["default_language"])
 	}
+	if view["build_on_save"] != false {
+		t.Fatalf("build_on_save default: %#v", view["build_on_save"])
+	}
 	if _, ok := view["smtp"].(map[string]any); !ok {
 		t.Fatalf("smtp view missing: %#v", view)
+	}
+	res, view = app.request("PUT", "/api/settings", map[string]any{"build_on_save": true}, map[string]string{"X-CSRF-Token": csrf})
+	if res.StatusCode != 200 || view["build_on_save"] != true {
+		t.Fatalf("save build_on_save: %d %#v", res.StatusCode, view)
 	}
 }

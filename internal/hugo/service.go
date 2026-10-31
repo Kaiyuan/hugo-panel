@@ -148,6 +148,14 @@ func (svc *Service) Build(ctx context.Context, site *Site) (*BuildResult, error)
 	return finish(result), nil
 }
 
+// ClearVersionCache forgets cached `hugo version` results, for example after
+// the configured binary has been upgraded.
+func (svc *Service) ClearVersionCache() {
+	svc.versionMu.Lock()
+	svc.versionCache = map[string]versionEntry{}
+	svc.versionMu.Unlock()
+}
+
 func (svc *Service) HugoVersion(ctx context.Context, site *Site) (string, bool) {
 	key := site.Binary
 	svc.versionMu.Lock()

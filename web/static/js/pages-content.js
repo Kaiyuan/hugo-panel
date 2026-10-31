@@ -1095,11 +1095,15 @@
             front_matter: fm,
             body: body.value
           };
-          const item = isNew.value
-            ? await HP.api('/content', { method: 'POST', body: payload })
-            : await HP.api('/content', { method: 'PUT', body: payload });
+          const saved = isNew.value
+            ? await HP.api('/content', { method: 'POST', body: payload, withMeta: true })
+            : await HP.api('/content', { method: 'PUT', body: payload, withMeta: true });
+          const item = saved.data;
           dirty.value = false;
           HP.toast('success', isNew.value ? t('content.created', {}, 'Content created') : t('content.updated', {}, 'Content saved'));
+          if (saved.buildStarted) {
+            HP.toast('info', t('content.build_started', {}, 'Site build started'), t('content.build_started_hint', {}, 'The site is built in the background. Check the Build page for the result.'), 6000);
+          }
           if (isNew.value || item.path !== originalPath.value) {
             HP.navigate('/content/edit', { path: item.path });
           } else {
@@ -1124,7 +1128,25 @@
           accept: then
         });
       }
-      function back() { confirmLeave(() => HP.navigate('/content')); }
+      // Global navigation guard: every in-app link, browser back/forward and
+      // manual hash change goes through here while the editor has changes.
+      function navigationGuard(target) {
+        if (!dirty.value || saving.value) return true;
+        confirm.require({
+          message: t('content.unsaved_confirm', {}, 'Discard your unsaved changes?'),
+          header: t('content.unsaved', {}, 'Unsaved changes'),
+          icon: 'pi pi-exclamation-triangle',
+          acceptClass: 'p-button-danger',
+          acceptLabel: t('content.discard', {}, 'Discard'),
+          rejectLabel: t('common.cancel', {}, 'Cancel'),
+          accept: () => {
+            dirty.value = false;
+            HP.navigate(target.path, target.query, { force: true });
+          }
+        });
+        return false;
+      }
+      function back() { HP.navigate('/content'); }
       function remove() {
         confirm.require({
           message: t('content.delete_confirm', { title: form.title }, 'Delete “{title}”? This cannot be undone.'),
@@ -1253,7 +1275,9 @@
       window.addEventListener('beforeunload', beforeUnload);
       function onWindowResize() { syncSourceLayout(); }
       window.addEventListener('resize', onWindowResize);
+      onMounted(() => { HP.setNavigationGuard(navigationGuard); });
       onBeforeUnmount(() => {
+        HP.clearNavigationGuard(navigationGuard);
         window.removeEventListener('beforeunload', beforeUnload);
         window.removeEventListener('resize', onWindowResize);
         if (sourceObserver) { sourceObserver.disconnect(); sourceObserver = null; }

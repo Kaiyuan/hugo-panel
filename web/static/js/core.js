@@ -96,7 +96,16 @@
     if (!res.ok) {
       const code = (data && data.error) || 'server_error';
       const message = (data && data.message) || (typeof data === 'string' ? data : '') || res.statusText;
-      throw new ApiError(code, message, res.status);
+      const err = new ApiError(code, message, res.status);
+      err.data = data;
+      throw err;
+    }
+    if (opts.withMeta) {
+      return {
+        data,
+        status: res.status,
+        buildStarted: res.headers.get('X-Build-Started') === '1'
+      };
     }
     return data;
   }
@@ -192,8 +201,25 @@
   if (mediaQuery.addEventListener) mediaQuery.addEventListener('change', onSystemTheme);
   else if (mediaQuery.addListener) mediaQuery.addListener(onSystemTheme);
 
-  function parseHash() {
-    const raw = location.hash.startsWith('#') ? location.hash.slice(1) : '';
+  // A page can register a guard that runs before any in-app navigation. The
+  // guard receives the target route and returns false to cancel the move (for
+  // example while an editor shows a confirmation dialog). Accepted moves pass
+  // { force: true } to bypass the guard.
+  let navigationGuard = null;
+  let pendingHash = '';
+  HP.setNavigationGuard = function (fn) {
+    navigationGuard = typeof fn === 'function' ? fn : null;
+  };
+  HP.clearNavigationGuard = function (fn) {
+    if (!fn || navigationGuard === fn) navigationGuard = null;
+  };
+  function guardAllows(target) {
+    if (!navigationGuard) return true;
+    try { return navigationGuard(target) !== false; }
+    catch (e) { return true; }
+  }
+  function targetFromHash(raw) {
+    raw = String(raw || '').replace(/^#/, '');
     let pathPart = raw;
     let qs = '';
     const qi = raw.indexOf('?');
@@ -202,16 +228,20 @@
       pathPart = state.user ? '/dashboard' : '/login';
     }
     if (!pathPart.startsWith('/')) pathPart = '/' + pathPart;
-    route.path = pathPart;
     const query = {};
     try {
       const params = new URLSearchParams(qs);
       for (const [k, v] of params.entries()) query[k] = v;
     } catch (e) {}
-    route.query = query;
-    route.full = pathPart + (qs ? '?' + qs : '');
+    return { path: pathPart, query, full: pathPart + (qs ? '?' + qs : '') };
   }
-  function navigate(path, query) {
+  function parseHash() {
+    const target = targetFromHash(location.hash);
+    route.path = target.path;
+    route.query = target.query;
+    route.full = target.full;
+  }
+  function navigate(path, query, opts) {
     let qs = '';
     if (query) {
       const params = new URLSearchParams();
@@ -221,14 +251,44 @@
       });
       qs = params.toString();
     }
-    const target = '#' + path + (qs ? '?' + qs : '');
-    if (location.hash === target) parseHash();
-    else location.hash = target;
+    const full = (path || '/') + (qs ? '?' + qs : '');
+    // Re-selecting the current page never leaves the editor.
+    if (full !== route.full && !(opts && opts.force) && !guardAllows(targetFromHash('#' + full))) {
+      return false;
+    }
+    const target = '#' + full;
+    if (location.hash === target) {
+      parseHash();
+    } else {
+      pendingHash = full;
+      location.hash = target;
+    }
+    return true;
   }
   HP.route = route;
   HP.navigate = navigate;
   HP.parseHash = parseHash;
-  window.addEventListener('hashchange', parseHash);
+  window.addEventListener('hashchange', () => {
+    const target = targetFromHash(location.hash);
+    // The move was already approved by navigate(); do not ask twice.
+    if (pendingHash && pendingHash === target.full) {
+      pendingHash = '';
+      parseHash();
+      return;
+    }
+    pendingHash = '';
+    if (target.full !== route.full && !guardAllows(target)) {
+      // Browser back/forward or a manually edited hash: restore the old URL
+      // without changing route state, then let the guard ask the user.
+      try {
+        history.replaceState(history.state, '', location.pathname + location.search + '#' + route.full);
+      } catch (e) {
+        location.hash = '#' + route.full;
+      }
+      return;
+    }
+    parseHash();
+  });
 
   function applyState(data) {
     if (!data) return;
@@ -290,7 +350,7 @@
     state.user = null;
     state.authenticated = false;
     state.csrf = '';
-    navigate('/login');
+    navigate('/login', undefined, { force: true });
   }
   HP.logout = logout;
 

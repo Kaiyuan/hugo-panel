@@ -163,6 +163,29 @@ func (s *Server) handleThemeRemove(w http.ResponseWriter, r *http.Request, sess 
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
+func (s *Server) handleThemeCompatibility(w http.ResponseWriter, r *http.Request, sess store.Session) {
+	name := strings.TrimSpace(r.URL.Query().Get("name"))
+	if name == "" {
+		writeError(w, http.StatusBadRequest, "invalid_request", "Theme name is required")
+		return
+	}
+	result, err := s.site(r.Context()).CheckThemeCompatibility(r.Context(), name)
+	if err != nil {
+		writeHugoError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+func (s *Server) handlePluginsCompatibility(w http.ResponseWriter, r *http.Request, sess store.Session) {
+	result, err := s.site(r.Context()).CheckPluginsCompatibility(r.Context())
+	if err != nil {
+		writeHugoError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 func (s *Server) handleThemeScreenshot(w http.ResponseWriter, r *http.Request, sess store.Session) {
 	name := strings.TrimSpace(r.URL.Query().Get("name"))
 	if name == "" {

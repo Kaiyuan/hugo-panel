@@ -19,6 +19,9 @@
       const showOutput = ref(false);
       const tidyRunning = ref(false);
       const removing = ref('');
+      const compat = ref(null);
+      const checkingCompat = ref(false);
+      const showCompatOutput = ref(false);
 
       const modules = computed(() => (state.value && state.value.modules) || []);
       const toolchain = computed(() => {
@@ -90,10 +93,37 @@
         } catch (e) { HP.notifyError(e); }
         finally { tidyRunning.value = false; }
       }
+      async function checkCompatibility() {
+        checkingCompat.value = true;
+        showCompatOutput.value = false;
+        try {
+          compat.value = await HP.api('/plugins/compatibility', { method: 'POST' });
+        } catch (e) { HP.notifyError(e); }
+        finally { checkingCompat.value = false; }
+      }
+      function compatLabel(result) {
+        if (!result) return '';
+        const version = result.hugo_version || '';
+        if (result.status === 'compatible') {
+          if (result.code === 'no_modules') return t('plugins.compat_no_modules', {}, 'No modules installed.');
+          return t('plugins.compat_ok', { version }, 'Modules build with Hugo {version}');
+        }
+        if (result.status === 'incompatible') {
+          return t('plugins.compat_failed', { version }, 'Modules are not compatible with Hugo {version}');
+        }
+        return t('plugins.compat_unknown', {}, 'Compatibility not confirmed');
+      }
+      const compatSeverity = computed(() => {
+        if (!compat.value) return 'info';
+        if (compat.value.status === 'compatible') return 'success';
+        if (compat.value.status === 'incompatible') return 'error';
+        return 'warn';
+      });
       onMounted(load);
       return {
         state, loading, error, addVisible, adding, form, output, showOutput, tidyRunning, removing,
-        modules, toolchain, load, add, remove, tidy, go: HP.navigate, t
+        modules, toolchain, load, add, remove, tidy, compat, checkingCompat, showCompatOutput,
+        checkCompatibility, compatLabel, compatSeverity, go: HP.navigate, t
       };
     },
     template: `
@@ -101,6 +131,7 @@
         <PageHeader :eyebrow="t('plugins.extensions', {}, 'Extensions')" :title="t('plugins.title', {}, 'Plugins')" :subtitle="t('plugins.subtitle', {}, 'Manage Hugo modules as installable plugins.')">
           <template #actions>
             <PButton text rounded icon="pi pi-refresh" @click="load" :title="t('common.refresh')" />
+            <PButton text :label="t('plugins.check_compat', {}, 'Test compatibility')" icon="pi pi-shield" :loading="checkingCompat" @click="checkCompatibility" />
             <PButton text :label="t('plugins.tidy', {}, 'Tidy modules')" icon="pi pi-sparkles" :loading="tidyRunning" @click="tidy" />
             <PButton :label="t('plugins.add', {}, 'Add plugin')" icon="pi pi-plus" @click="addVisible = true" class="btn-primary" />
           </template>
@@ -118,6 +149,17 @@
               <small v-if="item.value">{{ item.value.replace('hugo ', '') }}</small>
             </span>
           </div>
+
+          <PMessage v-if="compat" :severity="compatSeverity" :closable="false">
+            <div class="compat-message">
+              <strong>{{ compatLabel(compat) }}</strong>
+              <small>{{ compat.reason || t('plugins.compat_hint', {}, 'Runs a real Hugo build with the installed modules.') }}</small>
+              <button v-if="compat.output" type="button" class="link-button" @click="showCompatOutput = !showCompatOutput">
+                {{ showCompatOutput ? t('common.hide', {}, 'Hide') : t('plugins.compat_output', {}, 'Compatibility output') }}
+              </button>
+              <pre v-if="showCompatOutput && compat.output" class="console-output">{{ compat.output }}</pre>
+            </div>
+          </PMessage>
 
           <PMessage v-if="!state.initialized" severity="warn" :closable="false">
             {{ t('plugins.not_initialized', {}, 'Initialize your Hugo site before adding modules.') }}

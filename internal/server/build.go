@@ -37,6 +37,34 @@ func (s *Server) handleBuildRun(w http.ResponseWriter, r *http.Request, sess sto
 	writeJSON(w, http.StatusOK, result)
 }
 
+// buildAfterSave starts a background build when the build_on_save setting is
+// enabled. It reports whether a build was queued so the HTTP handler can tell
+// the editor without blocking the save on a full Hugo build.
+func (s *Server) buildAfterSave(ctx context.Context) bool {
+	if !s.settings.Bool(ctx, settings.KeyBuildOnSave) {
+		return false
+	}
+	go s.runBackgroundBuild()
+	return true
+}
+
+func (s *Server) runBackgroundBuild() {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	defer cancel()
+	site := s.site(ctx)
+	result, err := s.hugo.Build(ctx, site)
+	if err != nil {
+		if !errors.Is(err, hugo.ErrBuildRunning) {
+			s.logger.Error("build after save", "error", err)
+		}
+		return
+	}
+	_ = s.settings.Update(ctx, map[string]string{settings.KeyLastBuild: s.hugo.MarshalLastBuild()})
+	if !result.Success {
+		s.notifyBuildFailure(site, result)
+	}
+}
+
 func (s *Server) notifyBuildFailure(site *hugo.Site, result *hugo.BuildResult) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()

@@ -34,6 +34,7 @@ const (
 	KeyAIBaseURL         = "ai_base_url"
 	KeyAIModel           = "ai_model"
 	KeyAIAPIKey          = "ai_api_key"
+	KeyBuildOnSave       = "build_on_save"
 	KeyNotifications     = "notifications_enabled"
 	KeyLastBuild         = "last_build"
 	KeySetupCompletedAt  = "setup_completed_at"
@@ -86,6 +87,7 @@ func (m *Manager) defaults() map[string]string {
 		KeyAIBaseURL:         ai.DefaultBaseURL,
 		KeyAIModel:           ai.DefaultModel,
 		KeyAIAPIKey:          "",
+		KeyBuildOnSave:       "false",
 		KeyNotifications:     "true",
 	}
 }

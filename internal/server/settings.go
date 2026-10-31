@@ -26,6 +26,7 @@ type settingsView struct {
 	DefaultLanguage string          `json:"default_language"`
 	DefaultTheme    string          `json:"default_theme"`
 	Notifications   bool            `json:"notifications_enabled"`
+	BuildOnSave     bool            `json:"build_on_save"`
 	SMTP            smtpView        `json:"smtp"`
 	Translation     translationView `json:"translation"`
 	AI              aiView          `json:"ai"`
@@ -85,6 +86,7 @@ func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 		DefaultLanguage: all[settings.KeyDefaultLanguage],
 		DefaultTheme:    all[settings.KeyDefaultTheme],
 		Notifications:   parseBoolSetting(all[settings.KeyNotifications]),
+		BuildOnSave:     parseBoolSetting(all[settings.KeyBuildOnSave]),
 		EnvOverrides:    overrides,
 		SetupCompleted:  all[settings.KeySetupCompletedAt],
 		SMTP: smtpView{
@@ -127,6 +129,7 @@ type settingsPatch struct {
 	DefaultLanguage   *string `json:"default_language"`
 	DefaultTheme      *string `json:"default_theme"`
 	Notifications     *bool   `json:"notifications_enabled"`
+	BuildOnSave       *bool   `json:"build_on_save"`
 	SMTPEnabled       *bool   `json:"smtp_enabled"`
 	SMTPHost          *string `json:"smtp_host"`
 	SMTPPort          *int    `json:"smtp_port"`
@@ -207,6 +210,9 @@ func (s *Server) handleSettingsSave(w http.ResponseWriter, r *http.Request, sess
 	}
 	if req.Notifications != nil {
 		values[settings.KeyNotifications] = strconv.FormatBool(*req.Notifications)
+	}
+	if req.BuildOnSave != nil {
+		values[settings.KeyBuildOnSave] = strconv.FormatBool(*req.BuildOnSave)
 	}
 	if req.SMTPEnabled != nil {
 		values[settings.KeySMTPEnabled] = strconv.FormatBool(*req.SMTPEnabled)

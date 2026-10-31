@@ -172,6 +172,9 @@ func (s *Server) handleContentCreate(w http.ResponseWriter, r *http.Request, ses
 		writeHugoError(w, err)
 		return
 	}
+	if s.buildAfterSave(r.Context()) {
+		w.Header().Set("X-Build-Started", "1")
+	}
 	writeJSON(w, http.StatusCreated, item)
 }
 
@@ -184,6 +187,9 @@ func (s *Server) handleContentUpdate(w http.ResponseWriter, r *http.Request, ses
 	if err != nil {
 		writeHugoError(w, err)
 		return
+	}
+	if s.buildAfterSave(r.Context()) {
+		w.Header().Set("X-Build-Started", "1")
 	}
 	writeJSON(w, http.StatusOK, item)
 }

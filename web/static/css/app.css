@@ -774,6 +774,11 @@ small, .text-sm { font-size: 14px; }
 .theme-meta { display: flex; gap: 12px; color: var(--muted); font-size: 14px; flex-wrap: wrap; }
 .theme-meta span { display: inline-flex; align-items: center; gap: 5px; }
 .theme-actions { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 11px; margin-top: 5px; }
+.theme-compat { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; padding: 9px 0 2px; }
+.theme-compat small { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.compat-message { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.compat-message small { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.compat-message .console-output { width: 100%; margin-top: 6px; max-height: 240px; }
 .theme-link { margin-left: auto; width: 34px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); }
 .theme-link:hover { background: var(--accent-soft); color: var(--text); }
 .config-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 18px; align-items: start; }

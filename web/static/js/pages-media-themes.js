@@ -306,6 +306,8 @@
       const installVisible = ref(false);
       const installForm = reactive({ url: '', name: '' });
       const busy = ref({});
+      const compat = ref({});
+      const checking = ref({});
 
       async function load() {
         loading.value = true;
@@ -333,6 +335,30 @@
           HP.toast('success', t('themes.updated', { name: theme.name }, '{name} updated'), (res.output || '').slice(0, 180));
         } catch (e) { HP.notifyError(e); }
         finally { busy.value[theme.name] = false; }
+      }
+      async function checkCompatibility(theme) {
+        checking.value[theme.name] = true;
+        try {
+          compat.value[theme.name] = await HP.api('/themes/compatibility?name=' + encodeURIComponent(theme.name));
+        } catch (e) { HP.notifyError(e); }
+        finally { checking.value[theme.name] = false; }
+      }
+      function compatLabel(result) {
+        if (!result) return '';
+        const version = result.hugo_version || '';
+        if (result.status === 'compatible') {
+          return t('themes.compat_ok', { version }, 'Compatible with Hugo {version}');
+        }
+        if (result.status === 'incompatible') {
+          return t('themes.compat_failed', { version }, 'Not compatible with Hugo {version}');
+        }
+        return t('themes.compat_unknown', {}, 'Compatibility not confirmed');
+      }
+      function compatSeverity(result) {
+        if (!result) return 'secondary';
+        if (result.status === 'compatible') return 'success';
+        if (result.status === 'incompatible') return 'danger';
+        return 'warn';
       }
       function remove(theme) {
         confirm.require({
@@ -366,7 +392,8 @@
       onMounted(load);
       return {
         tab, themes, active, loading, error, installing, installVisible, installForm, busy, load,
-        activate, update, remove, install, screenshot, t
+        activate, update, remove, install, screenshot, compat, checking, checkCompatibility,
+        compatLabel, compatSeverity, t
       };
     },
     template: `
@@ -406,9 +433,14 @@
                       <p class="theme-desc">{{ theme.description || t('themes.no_description', {}, 'No description provided by this theme.') }}</p>
                       <div class="theme-tags"><PTag v-for="tag in theme.tags.slice(0, 3)" :key="tag" :value="tag" severity="secondary" rounded /></div>
                       <div class="theme-meta"><span v-if="theme.author"><i class="pi pi-user"></i>{{ theme.author }}</span><span v-if="theme.license"><i class="pi pi-file"></i>{{ theme.license }}</span></div>
+                      <div v-if="compat[theme.name]" class="theme-compat" :class="'is-' + compat[theme.name].status">
+                        <PTag :value="compatLabel(compat[theme.name])" :severity="compatSeverity(compat[theme.name])" rounded />
+                        <small v-if="compat[theme.name].reason">{{ compat[theme.name].reason }}</small>
+                      </div>
                       <div class="theme-actions">
                         <PButton v-if="!theme.active" size="small" :label="t('themes.activate', {}, 'Activate')" :loading="busy[theme.name]" @click="activate(theme)" class="btn-primary" />
                         <PButton v-else size="small" outlined :label="t('themes.active', {}, 'Active')" disabled />
+                        <PButton size="small" text icon="pi pi-shield" :label="t('themes.check_compat', {}, 'Test compatibility')" :loading="checking[theme.name]" @click="checkCompatibility(theme)" />
                         <PButton v-if="theme.has_git" size="small" text icon="pi pi-refresh" :label="t('themes.update', {}, 'Update')" :loading="busy[theme.name]" @click="update(theme)" />
                         <PButton v-if="!theme.active" size="small" text severity="danger" icon="pi pi-trash" @click="remove(theme)" />
                         <a v-if="theme.homepage" :href="theme.homepage" target="_blank" rel="noopener" class="theme-link"><i class="pi pi-external-link"></i></a>

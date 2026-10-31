@@ -54,6 +54,7 @@ type Server struct {
 
 	limiter   *rateLimiter
 	dummyHash string
+	upgradeMu sync.Mutex
 }
 
 type apiFunc func(http.ResponseWriter, *http.Request, store.Session)
@@ -157,6 +158,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/hugo/config", s.requireAuth(s.handleConfigSave))
 	mux.HandleFunc("POST /api/hugo/init", s.requireAuth(s.handleHugoInit))
 	mux.HandleFunc("GET /api/system", s.requireAuth(s.handleSystem))
+	mux.HandleFunc("POST /api/hugo/upgrade", s.requireAuth(s.handleHugoUpgrade))
 
 	mux.HandleFunc("GET /api/themes", s.requireAuth(s.handleThemes))
 	mux.HandleFunc("POST /api/themes/activate", s.requireAuth(s.handleThemeActivate))
@@ -164,11 +166,13 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/themes/update", s.requireAuth(s.handleThemeUpdate))
 	mux.HandleFunc("DELETE /api/themes", s.requireAuth(s.handleThemeRemove))
 	mux.HandleFunc("GET /api/themes/screenshot", s.requireAuth(s.handleThemeScreenshot))
+	mux.HandleFunc("GET /api/themes/compatibility", s.requireAuth(s.handleThemeCompatibility))
 
 	mux.HandleFunc("GET /api/plugins", s.requireAuth(s.handlePlugins))
 	mux.HandleFunc("POST /api/plugins", s.requireAuth(s.handlePluginAdd))
 	mux.HandleFunc("DELETE /api/plugins", s.requireAuth(s.handlePluginRemove))
 	mux.HandleFunc("POST /api/plugins/tidy", s.requireAuth(s.handlePluginTidy))
+	mux.HandleFunc("POST /api/plugins/compatibility", s.requireAuth(s.handlePluginsCompatibility))
 
 	mux.HandleFunc("GET /api/build", s.requireAuth(s.handleBuildGet))
 	mux.HandleFunc("POST /api/build", s.requireAuth(s.handleBuildRun))
