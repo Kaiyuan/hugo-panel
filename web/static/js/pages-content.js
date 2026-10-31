@@ -541,13 +541,26 @@
         return String(html).replace(/(src)=("|')\/images\/([^"']+)\2/g, (m, attr, quote, path) =>
           attr + '=' + quote + '/api/media/file?path=' + encodeURIComponent(path) + quote);
       }
+      // Wide Markdown tables must scroll inside their own box instead of
+      // stretching the editor past the viewport on phones.
+      function wrapMarkdownTables(html) {
+        const template = document.createElement('template');
+        template.innerHTML = String(html);
+        template.content.querySelectorAll('table').forEach((table) => {
+          const wrap = document.createElement('div');
+          wrap.className = 'md-table-scroll';
+          table.parentNode.insertBefore(wrap, table);
+          wrap.appendChild(table);
+        });
+        return template.innerHTML;
+      }
       function renderMarkdown(src) {
         const text = String(src || '');
         if (!text) return '';
         try {
           if (!window.marked || !window.DOMPurify) return '<pre>' + escapeHtml(text) + '</pre>';
           const html = window.marked.parse(text, { gfm: true, breaks: true });
-          return rewriteMediaLinks(window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } }));
+          return wrapMarkdownTables(rewriteMediaLinks(window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } })));
         } catch (e) { return '<pre>' + escapeHtml(text) + '</pre>'; }
       }
       const preview = computed(() => {
