@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM golang:1.24-alpine AS build
+FROM golang:1.24-trixie AS build
 
 ARG VERSION=0.0.3
 ARG COMMIT=none
@@ -8,9 +8,10 @@ ARG BUILD_TIME=unknown
 ARG GOPROXY=https://goproxy.cn,direct
 
 ENV GOPROXY=${GOPROXY}
-# The SQLite driver uses cgo, so the panel is linked against musl here and the
-# resulting binary runs on Alpine without any glibc compatibility layer.
-RUN apk add --no-cache ca-certificates gcc musl-dev
+# The SQLite driver uses cgo, so the panel is linked against glibc and the
+# runtime image must be Debian-based (Alpine uses musl and cannot run it).
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
@@ -21,11 +22,9 @@ RUN CGO_ENABLED=1 go build -trimpath \
     -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.buildTime=${BUILD_TIME}" \
     -o /out/hugo-panel ./cmd/hugo-panel
 
-# The pinned official Hugo extended binary is linked against glibc. Alpine's
-# gcompat provides the glibc ABI and libstdc++ provides the C++ runtime needed
-# by LibSass, so the extended edition (SCSS/Sass) works without switching the
-# whole image back to Debian.
-FROM alpine:3.24
+# The official Hugo extended binary and the cgo build of the panel are linked
+# against glibc, so use a Debian runtime instead of Alpine.
+FROM debian:trixie-slim
 
 # The extended binary is resolved from the latest upstream release at build
 # time, so the image does not need a manual version bump for every Hugo
@@ -33,12 +32,14 @@ FROM alpine:3.24
 ARG HUGO_VERSION=
 
 RUN set -eux; \
-    apk add --no-cache \
-      ca-certificates git go gcompat libstdc++ su-exec tzdata wget; \
-    case "$(apk --print-arch)" in \
-      x86_64) hugo_arch=amd64 ;; \
-      aarch64) hugo_arch=arm64 ;; \
-      *) echo "unsupported architecture: $(apk --print-arch)" >&2; exit 1 ;; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+      ca-certificates git golang-go gosu libgcc-s1 libstdc++6 tzdata wget; \
+    rm -rf /var/lib/apt/lists/*; \
+    case "$(dpkg --print-architecture)" in \
+      amd64) hugo_arch=amd64 ;; \
+      arm64) hugo_arch=arm64 ;; \
+      *) echo "unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
     esac; \
     if [ -z "${HUGO_VERSION}" ]; then \
       HUGO_VERSION="$(wget -qO- --tries=3 --timeout=60 https://api.github.com/repos/gohugoio/hugo/releases/latest \
@@ -52,8 +53,8 @@ RUN set -eux; \
     tar -xzf /tmp/hugo.tar.gz -C /usr/local/bin hugo; \
     rm -f /tmp/hugo.tar.gz; \
     hugo version; \
-    addgroup -g 1000 hugo; \
-    adduser -u 1000 -D -H -h /app -s /sbin/nologin -G hugo hugo; \
+    groupadd --gid 1000 hugo; \
+    useradd --uid 1000 --gid 1000 --home-dir /app --create-home --shell /usr/sbin/nologin hugo; \
     mkdir -p /app/hugo-panel/data /app/hugo; \
     chown -R hugo:hugo /app
 
