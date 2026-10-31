@@ -607,11 +607,26 @@ small, .text-sm { font-size: 14px; }
   background: transparent;
   overflow: hidden;
 }
+/* The highlighted <pre> sits under a transparent textarea, so both layers must
+   wrap text exactly the same way or mouse selection drifts away from what the
+   user sees. Keep every metric-affecting property identical and never change
+   font weight/style per token: bold and italic glyphs are wider than the
+   regular text drawn by the textarea. */
 .md-highlight, .markdown-editor {
   margin: 0;
   padding: 8px 4px 22px;
   font-family: var(--mono);
   font-size: 14.5px;
+  font-weight: 400;
+  font-style: normal;
+  font-stretch: normal;
+  font-kerning: none;
+  font-variant-ligatures: none;
+  font-synthesis: none;
+  letter-spacing: 0;
+  word-spacing: 0;
+  text-transform: none;
+  text-indent: 0;
   line-height: 1.7;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -620,23 +635,23 @@ small, .text-sm { font-size: 14px; }
 }
 .md-highlight {
   position: absolute; inset: 0;
-  overflow: auto; pointer-events: none;
+  /* Not a visible scroll container: the textarea owns the scrollbar. The
+     right/bottom padding is widened in JS to mirror the textarea scrollbar so
+     both layers keep the same content width. */
+  overflow: hidden; pointer-events: none;
   color: var(--text-2); background: transparent;
   border: 0; border-radius: 0;
-  scrollbar-width: none;
-  scrollbar-gutter: stable;
 }
-.md-highlight::-webkit-scrollbar { display: none; }
-.md-highlight code { font: inherit; color: inherit; white-space: inherit; overflow-wrap: inherit; }
-.md-highlight .md-heading { color: var(--text); font-weight: 700; }
-.md-highlight .md-strong { color: var(--text); font-weight: 700; }
-.md-highlight .md-em { color: var(--text); font-style: italic; }
+.md-highlight code { font: inherit; color: inherit; white-space: inherit; overflow-wrap: inherit; letter-spacing: inherit; }
+.md-highlight .md-heading { color: var(--text); }
+.md-highlight .md-strong { color: var(--text); }
+.md-highlight .md-em { color: var(--text); }
 .md-highlight .md-strike { color: var(--muted); text-decoration: line-through; }
 .md-highlight .md-link, .md-highlight .md-image { color: var(--info); text-decoration: underline; text-underline-offset: 2px; }
 .md-highlight .md-inline-code { color: var(--success); background: color-mix(in srgb, var(--success-soft) 70%, transparent); border-radius: 4px; }
-.md-highlight .md-quote { color: var(--muted); font-style: italic; }
+.md-highlight .md-quote { color: var(--muted); }
 .md-highlight .md-list { color: var(--text-2); }
-.md-highlight .md-hr { color: var(--border-strong); font-weight: 700; }
+.md-highlight .md-hr { color: var(--border-strong); }
 .md-highlight .md-code-line { color: var(--success); }
 .md-highlight .md-fence { color: var(--muted); }
 .markdown-editor {

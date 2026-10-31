@@ -258,7 +258,12 @@
       const html = highlightMarkdownInline(line);
       out.push(cls ? '<span class="' + cls + '">' + html + '</span>' : html);
     }
-    return out.join('\n');
+    const markup = out.join('\n');
+    // A textarea renders an empty line after a trailing newline; <pre> does not
+    // create a line box for it. Add a zero-width space so both layers keep the
+    // same height and scroll range (otherwise the overlay lags a line at the
+    // bottom and drag-selection drifts).
+    return src.endsWith('\n') ? markup + '\u200B' : markup;
   }
 
   function detectType(value) {
@@ -349,6 +354,7 @@
       watch(activeTab, (value) => {
         if (value !== 'edit' && value !== 'source') return;
         try { localStorage.setItem('hp_editor_tab', value); } catch (e) { /* storage unavailable */ }
+        if (value === 'source') scheduleSourceSync();
       });
 
       const dirOptions = computed(() => {
@@ -735,11 +741,43 @@
         highlight.scrollTop = editor.scrollTop;
         highlight.scrollLeft = editor.scrollLeft;
       }
+      // The textarea scrollbar reduces the width available for text. Mirror it
+      // on the highlight layer so both wrap at exactly the same column; without
+      // this, mouse selection lands on different characters than the ones the
+      // user sees.
+      function syncSourceMetrics() {
+        const editor = sourceEditor.value;
+        const highlight = sourceHighlight.value;
+        if (!editor || !highlight) return;
+        const scrollbarX = Math.max(0, editor.offsetWidth - editor.clientWidth);
+        const scrollbarY = Math.max(0, editor.offsetHeight - editor.clientHeight);
+        const right = (4 + scrollbarX) + 'px';
+        const bottom = (22 + scrollbarY) + 'px';
+        if (highlight.style.paddingRight !== right) highlight.style.paddingRight = right;
+        if (highlight.style.paddingBottom !== bottom) highlight.style.paddingBottom = bottom;
+      }
+      function syncSourceLayout() {
+        syncSourceMetrics();
+        syncSourceScroll();
+      }
+      function scheduleSourceSync() {
+        nextTick(syncSourceLayout);
+      }
+      // Re-measure when the editor is mounted or its size changes (window
+      // resize, sidebar layout, scrollbar appearing while typing).
+      let sourceObserver = null;
+      watch(sourceEditor, (el) => {
+        if (sourceObserver) { sourceObserver.disconnect(); sourceObserver = null; }
+        if (!el || typeof ResizeObserver === 'undefined') return;
+        sourceObserver = new ResizeObserver(() => syncSourceLayout());
+        sourceObserver.observe(el);
+        scheduleSourceSync();
+      });
       function onSourceInput() {
         markDirty();
-        nextTick(syncSourceScroll);
+        scheduleSourceSync();
       }
-      watch(body, () => { nextTick(syncSourceScroll); });
+      watch(body, scheduleSourceSync);
 
       function sourceTextarea() {
         if (sourceEditor.value) return sourceEditor.value;
@@ -1213,7 +1251,13 @@
         e.returnValue = '';
       }
       window.addEventListener('beforeunload', beforeUnload);
-      onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload));
+      function onWindowResize() { syncSourceLayout(); }
+      window.addEventListener('resize', onWindowResize);
+      onBeforeUnmount(() => {
+        window.removeEventListener('beforeunload', beforeUnload);
+        window.removeEventListener('resize', onWindowResize);
+        if (sourceObserver) { sourceObserver.disconnect(); sourceObserver = null; }
+      });
       onMounted(load);
 
       return {
