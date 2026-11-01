@@ -71,6 +71,8 @@ type deployView struct {
 	StrictHostKey bool   `json:"strict_host_key"`
 	RsyncPath     string `json:"rsync_path"`
 	SSHKeySet     bool   `json:"ssh_key_set"`
+	SSHKeyPreview string `json:"ssh_key_preview"`
+	SSHKeyAddedAt string `json:"ssh_key_added_at"`
 	KnownHostsSet bool   `json:"known_hosts_set"`
 	Configured    bool   `json:"configured"`
 }
@@ -142,6 +144,8 @@ func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 			StrictHostKey: deployCfg.StrictHostKey,
 			RsyncPath:     deployCfg.RsyncPath,
 			SSHKeySet:     deployCfg.SSHKey != "",
+			SSHKeyPreview: sshKeyPreview(deployCfg.SSHKey),
+			SSHKeyAddedAt: all[settings.KeyDeploySSHKeyAddedAt],
 			KnownHostsSet: deployCfg.KnownHosts != "",
 			Configured:    deployCfg.Validate() == nil,
 		},
@@ -153,6 +157,20 @@ func deploySource(all map[string]string) string {
 		return v
 	}
 	return "public"
+}
+
+// sshKeyPreview returns only the first 10 characters of a saved key so the
+// settings page can identify it without exposing key material.
+func sshKeyPreview(key string) string {
+	key = strings.TrimSpace(key)
+	if key == "" {
+		return ""
+	}
+	runes := []rune(key)
+	if len(runes) > 10 {
+		runes = runes[:10]
+	}
+	return string(runes)
 }
 
 func (s *Server) handleSettingsGet(w http.ResponseWriter, r *http.Request, sess store.Session) {
@@ -449,12 +467,14 @@ func (s *Server) handleSettingsSave(w http.ResponseWriter, r *http.Request, sess
 	}
 	if req.ClearDeploySSHKey {
 		values[settings.KeyDeploySSHKey] = ""
+		values[settings.KeyDeploySSHKeyAddedAt] = ""
 	} else if req.DeploySSHKey != nil && strings.TrimSpace(*req.DeploySSHKey) != "" {
 		if !deploy.ValidPrivateKey(*req.DeploySSHKey) {
 			writeError(w, http.StatusBadRequest, "invalid_request", "The SSH private key does not look valid")
 			return
 		}
 		values[settings.KeyDeploySSHKey] = *req.DeploySSHKey
+		values[settings.KeyDeploySSHKeyAddedAt] = time.Now().UTC().Format(time.RFC3339)
 	}
 	if req.ClearDeployKnown {
 		values[settings.KeyDeployKnownHosts] = ""

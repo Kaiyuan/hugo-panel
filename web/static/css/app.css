@@ -530,6 +530,15 @@ small, .text-sm { font-size: 14px; }
 .switch-row strong { font-size: 15px; }
 .switch-row small { font-size: 14px; color: var(--muted); }
 .check-row { display: flex; align-items: center; gap: 9px; font-size: 14px; color: var(--text-2); }
+.ssh-key-list { margin: 4px 0 12px; }
+.ssh-key-item {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-soft);
+}
+.ssh-key-item > .pi-key { color: var(--muted); }
+.ssh-key-item code { font-family: var(--mono); font-size: 13px; color: var(--text); }
+.ssh-key-item small { color: var(--muted); font-size: 12.5px; }
+.ssh-key-item .p-button { margin-left: auto; }
 .env-badge { font-style: normal; background: var(--info-soft); color: var(--info); font-size: 14px; padding: 1px 6px; border-radius: 5px; font-weight: 700; letter-spacing: .05em; }
 
 /* ---------- Content ---------- */

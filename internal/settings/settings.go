@@ -49,6 +49,7 @@ const (
 	KeyDeployDelete        = "deploy_delete"
 	KeyDeployStrictHostKey = "deploy_strict_host_key"
 	KeyDeploySSHKey        = "deploy_ssh_key"
+	KeyDeploySSHKeyAddedAt = "deploy_ssh_key_added_at"
 	KeyDeployKnownHosts    = "deploy_known_hosts"
 	KeyDeployRsyncPath     = "deploy_rsync_path"
 	KeyLastDeploy          = "last_deploy"
@@ -112,6 +113,7 @@ func (m *Manager) defaults() map[string]string {
 		KeyDeployDelete:        "true",
 		KeyDeployStrictHostKey: "true",
 		KeyDeploySSHKey:        "",
+		KeyDeploySSHKeyAddedAt: "",
 		KeyDeployKnownHosts:    "",
 		KeyDeployRsyncPath:     "",
 	}

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 const testDeployKey = "-----BEGIN OPENSSH PRIVATE KEY-----\nsecret-test-key\n-----END OPENSSH PRIVATE KEY-----"
@@ -45,6 +46,13 @@ func TestDeploySettingsRedactSecrets(t *testing.T) {
 	if deployView["ssh_key_set"] != true || deployView["known_hosts_set"] != true || deployView["configured"] != true {
 		t.Fatalf("unexpected deploy view: %#v", deployView)
 	}
+	if deployView["ssh_key_preview"] != "-----BEGIN" {
+		t.Fatalf("ssh_key_preview = %#v, want first 10 characters", deployView["ssh_key_preview"])
+	}
+	addedAt, _ := deployView["ssh_key_added_at"].(string)
+	if _, err := time.Parse(time.RFC3339, addedAt); err != nil {
+		t.Fatalf("ssh_key_added_at = %q, want an RFC3339 timestamp", addedAt)
+	}
 	if deployView["port"] != float64(2222) || deployView["host"] != "example.com" {
 		t.Fatalf("unexpected deploy target: %#v", deployView)
 	}
@@ -56,6 +64,27 @@ func TestDeploySettingsRedactSecrets(t *testing.T) {
 	encoded, _ = json.Marshal(fetched)
 	if strings.Contains(string(encoded), "secret-test-key") || strings.Contains(string(encoded), "AAAAC3NzaC1lZDI1NTE5") {
 		t.Fatal("GET /api/settings leaked deployment secrets")
+	}
+}
+
+func TestDeploySettingsClearSSHKey(t *testing.T) {
+	app, csrf := setupApp(t)
+	site := t.TempDir()
+	res, view := app.request("PUT", "/api/settings", deploySettings(site), map[string]string{"X-CSRF-Token": csrf})
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("save deploy settings: %d %#v", res.StatusCode, view)
+	}
+
+	res, view = app.request("PUT", "/api/settings", map[string]any{"clear_deploy_ssh_key": true}, map[string]string{"X-CSRF-Token": csrf})
+	if res.StatusCode != http.StatusOK {
+		t.Fatalf("clear ssh key: %d %#v", res.StatusCode, view)
+	}
+	deployView, _ := view["deploy"].(map[string]any)
+	if deployView == nil {
+		t.Fatalf("deploy view missing: %#v", view)
+	}
+	if deployView["ssh_key_set"] != false || deployView["ssh_key_preview"] != "" || deployView["ssh_key_added_at"] != "" {
+		t.Fatalf("saved key metadata was not cleared: %#v", deployView)
 	}
 }
 

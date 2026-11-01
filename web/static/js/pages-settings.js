@@ -19,6 +19,7 @@
       const error = ref('');
       const savingGeneral = ref(false);
       const savingDeploy = ref(false);
+      const deletingSSHKey = ref(false);
       const deploying = ref(false);
       const deployResult = ref(null);
       const upgradingHugo = ref(false);
@@ -38,7 +39,7 @@
       const deploy = reactive({
         enabled: false, host: '', port: 22, user: '', path: '', source: 'public',
         delete: true, strict_host_key: true, rsync_path: '', ssh_key: '', known_hosts: '',
-        clear_ssh_key: false, clear_known_hosts: false
+        clear_known_hosts: false
       });
       const email = reactive({
         enabled: false, host: '', port: 587, username: '', password: '', from: '', from_name: 'Hugo Panel',
@@ -101,7 +102,6 @@
         deploy.rsync_path = dp.rsync_path || '';
         deploy.ssh_key = '';
         deploy.known_hosts = '';
-        deploy.clear_ssh_key = false;
         deploy.clear_known_hosts = false;
         email.enabled = !!settings.value.smtp.enabled;
         email.host = settings.value.smtp.host || '';
@@ -175,7 +175,6 @@
             deploy_delete: deploy.delete,
             deploy_strict_host_key: deploy.strict_host_key,
             deploy_rsync_path: deploy.rsync_path,
-            clear_deploy_ssh_key: deploy.clear_ssh_key,
             clear_deploy_known_hosts: deploy.clear_known_hosts
           };
           if (deploy.ssh_key) body.deploy_ssh_key = deploy.ssh_key;
@@ -202,6 +201,30 @@
           else HP.toast('error', t('settings.deploy_result_failed', {}, 'Deployment failed'));
         } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
         finally { deploying.value = false; }
+      }
+      function deleteSSHKey() {
+        confirm.require({
+          message: t('settings.deploy_ssh_key_delete_confirm', {}, 'Delete the saved SSH private key? Deployments will fall back to the default SSH identity.'),
+          header: t('settings.deploy_ssh_key', {}, 'SSH private key'),
+          icon: 'pi pi-exclamation-triangle',
+          acceptClass: 'p-button-danger',
+          acceptLabel: t('common.delete', {}, 'Delete'),
+          rejectLabel: t('common.cancel', {}, 'Cancel'),
+          accept: async () => {
+            deletingSSHKey.value = true;
+            error.value = '';
+            try {
+              settings.value = await HP.api('/settings', { method: 'PUT', body: { clear_deploy_ssh_key: true } });
+              fill();
+              HP.toast('success', t('settings.deploy_ssh_key_deleted', {}, 'SSH private key deleted'));
+            } catch (e) {
+              error.value = HP.errorText(e);
+              HP.notifyError(e);
+            } finally {
+              deletingSSHKey.value = false;
+            }
+          }
+        });
       }
       function openUpgrade() {
         upgradeError.value = '';
@@ -439,6 +462,7 @@
         langOptions, themeOptions, securityOptions, providerOptions, addVisible, adding, addForm, fileInput, addError,
         upgradingHugo, upgradeVisible, upgradeVersion, upgradeError, upgradeOutput, openUpgrade, runUpgrade,
         isEnv, hasSmtpEnv, load, saveGeneral, saveDeploy, deployNow, saveEmail, saveTranslation, saveAI, testAI, testEmail, saveProfile, changePassword, openAdd,
+        deletingSSHKey, deleteSSHKey,
         chooseTranslationFile, onTranslationFile, addTranslation, downloadTemplate, deleteTranslation,
         uptime, userSince, initials: HP.initials, formatDateTime: HP.formatDateTime, formatBytes: HP.formatBytes, t
       };
@@ -567,7 +591,14 @@
                       <PTextarea v-model="deploy.ssh_key" rows="5" class="mono-input" :placeholder="settings.deploy.ssh_key_set ? t('settings.password_keep', {}, 'Saved — leave blank to keep') : '-----BEGIN OPENSSH PRIVATE KEY-----'" />
                       <small class="field-hint">{{ t('settings.deploy_ssh_key_hint', {}, 'Stored on the server and never returned by the API. Leave blank to use the default SSH identity.') }}</small>
                     </label>
-                    <div v-if="settings.deploy.ssh_key_set" class="check-row"><PCheckbox v-model="deploy.clear_ssh_key" binary /><span>{{ t('settings.deploy_clear_ssh_key', {}, 'Remove the saved private key') }}</span></div>
+                    <div v-if="settings.deploy.ssh_key_set" class="ssh-key-list">
+                      <div class="ssh-key-item">
+                        <i class="pi pi-key"></i>
+                        <code>{{ settings.deploy.ssh_key_preview }}…</code>
+                        <small>{{ t('settings.deploy_ssh_key_added', {}, 'Added') }} {{ formatDateTime(settings.deploy.ssh_key_added_at) }}</small>
+                        <PButton text rounded severity="danger" icon="pi pi-trash" :loading="deletingSSHKey" @click="deleteSSHKey" :title="t('settings.deploy_clear_ssh_key', {}, 'Remove the saved private key')" />
+                      </div>
+                    </div>
                     <label class="field">
                       <span>{{ t('settings.deploy_known_hosts', {}, 'Known hosts') }}</span>
                       <PTextarea v-model="deploy.known_hosts" rows="4" class="mono-input" :placeholder="settings.deploy.known_hosts_set ? t('settings.password_keep', {}, 'Saved — leave blank to keep') : 'example.com ssh-ed25519 AAAA...'" />
