@@ -438,6 +438,8 @@
   "nav.profile": "个人资料",
   "nav.settings": "设置",
   "nav.themes": "主题",
+  "nav.version_current": "{version} · 已是最新版本",
+  "nav.version_update": "{current} · 可更新至 {latest}",
   "plugins.add": "添加插件",
   "plugins.add_hint": "输入 Go 模块路径。面板会将其加入 module.imports 并运行 hugo mod tidy。",
   "plugins.added": "添加插件",

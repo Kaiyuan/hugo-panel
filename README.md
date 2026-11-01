@@ -143,6 +143,7 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 | `PUBLIC_URL` | 空 | 面板公网地址，用于密码重置链接；设置后环境变量优先 |
 | `COOKIE_SECURE` | `auto` | `auto` / `true` / `false`，HTTPS 反代建议保持 auto |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
+| `PANEL_LATEST_URL` | GitHub Releases API | 侧栏版本检查地址；留空关闭更新检查 |
 | `SMTP_ENABLED` | 空 | `true` 开启 SMTP |
 | `SMTP_HOST` | 空 | SMTP 主机 |
 | `SMTP_PORT` | `587` | SMTP 端口 |

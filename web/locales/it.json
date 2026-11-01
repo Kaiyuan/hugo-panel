@@ -438,6 +438,8 @@
   "nav.profile": "Profilo",
   "nav.settings": "Impostazioni",
   "nav.themes": "Temi",
+  "nav.version_current": "{version} · aggiornato",
+  "nav.version_update": "{current} · {latest} disponibile",
   "plugins.add": "Aggiungi plugin",
   "plugins.add_hint": "Inserisci un percorso del modulo Go. Il pannello lo aggiunge a module.imports ed esegue hugo mod tidy.",
   "plugins.added": "Aggiunto plugin",

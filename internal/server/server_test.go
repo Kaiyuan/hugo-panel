@@ -32,6 +32,8 @@ func newTestApp(t *testing.T) *testApp {
 	// Keep the automatic Hugo version check off the network in tests; the
 	// version-check tests point HUGO_LATEST_URL at a local server.
 	t.Setenv("HUGO_LATEST_URL", "")
+	// The same applies to the panel release check.
+	t.Setenv("PANEL_LATEST_URL", "")
 	root := t.TempDir()
 	dataDir := filepath.Join(root, "data")
 	hugoDir := filepath.Join(root, "hugo")
@@ -57,7 +59,7 @@ func newTestApp(t *testing.T) *testApp {
 		t.Fatal(err)
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv, err := New(cfg, st, set, i18n.New(locales, dataDir), mailer.New(), hugo.NewService(), logger, "test")
+	srv, err := New(cfg, st, set, i18n.New(locales, dataDir), mailer.New(), hugo.NewService(), logger, "0.0.5")
 	if err != nil {
 		t.Fatal(err)
 	}

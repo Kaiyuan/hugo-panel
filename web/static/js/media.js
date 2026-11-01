@@ -62,6 +62,31 @@
 
   function humanError(e) { return HP.errorText(e); }
 
+// Upload one or more files into a media library folder. Used by both the media
+// page and the picker in the content editor. Returns the number of files that
+// were uploaded successfully.
+async function uploadMediaFiles(fileList, opts) {
+  const files = Array.from(fileList || []);
+  let ok = 0;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file.size > opts.maxUploadMB * 1024 * 1024) {
+      HP.toast('error', t('media.too_large', {}, 'File is too large'), file.name);
+      continue;
+    }
+    if (opts.onProgress) opts.onProgress(i + 1, files.length);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      await HP.api('/media?' + queryString({ library: opts.library, path: opts.path }), { method: 'POST', body: fd });
+      ok++;
+    } catch (e) {
+      HP.notifyError(e);
+    }
+  }
+  return ok;
+}
+
   /* ------------------------------------------------------------------ */
   /* Media page                                                          */
   /* ------------------------------------------------------------------ */
@@ -201,23 +226,14 @@
         if (!list.length) return;
         uploading.value = true;
         error.value = '';
-        let ok = 0;
-        for (let i = 0; i < list.length; i++) {
-          const file = list[i];
-          if (file.size > maxUploadMB.value * 1024 * 1024) {
-            HP.toast('error', t('media.too_large', {}, 'File is too large'), file.name);
-            continue;
+        const ok = await uploadMediaFiles(list, {
+          library: libraryId.value,
+          path: path.value,
+          maxUploadMB: maxUploadMB.value,
+          onProgress: (current, total) => {
+            progress.value = t('media.uploading_progress', { current, total }, 'Uploading {current} of {total}…');
           }
-          progress.value = t('media.uploading_progress', { current: i + 1, total: list.length }, 'Uploading {current} of {total}…');
-          const fd = new FormData();
-          fd.append('file', file);
-          try {
-            await HP.api('/media?' + queryString({ library: libraryId.value, path: path.value }), { method: 'POST', body: fd });
-            ok++;
-          } catch (e) {
-            HP.notifyError(e);
-          }
-        }
+        });
         uploading.value = false;
         progress.value = '';
         if (fileInput.value) fileInput.value.value = '';
@@ -650,15 +666,23 @@
     emits: ['update:visible', 'insert', 'select'],
     setup(props, { emit }) {
       const libraries = ref([]);
+      const allowedExtensions = ref([]);
+      const defaultMaxUpload = ref(512);
+      const maxUploadMB = ref(512);
       const libraryId = ref(localStorage.getItem(LIBRARY_KEY) || 'local');
       const path = ref('');
       const entries = ref([]);
       const loading = ref(false);
+      const uploading = ref(false);
+      const progress = ref('');
       const error = ref('');
+      const dragging = ref(false);
+      const fileInput = ref(null);
       const selected = ref(null);
 
       const choosing = computed(() => props.mode === 'choose');
       const imagesOnly = computed(() => props.imagesOnly);
+      const accept = computed(() => acceptAttribute(allowedExtensions.value));
       const crumbs = computed(() => {
         const out = [{ label: t('media.root', {}, 'Root'), path: '' }];
         let acc = '';
@@ -676,6 +700,8 @@
         try {
           const data = await HP.api('/media/libraries');
           libraries.value = (data.libraries || []).map((library) => library.builtin ? Object.assign({}, library, { name: t('media.builtin_library', {}, 'Site images') }) : library);
+          allowedExtensions.value = data.allowed_extensions || [];
+          defaultMaxUpload.value = data.default_max_upload_mb || 512;
           if (!libraries.value.some((l) => l.id === libraryId.value)) libraryId.value = 'local';
         } catch (e) { error.value = humanError(e); }
       }
@@ -686,8 +712,36 @@
         try {
           const data = await HP.api('/media?' + queryString({ library: libraryId.value, path: path.value }));
           entries.value = data.entries || [];
+          maxUploadMB.value = data.max_upload_mb || defaultMaxUpload.value;
         } catch (e) { error.value = humanError(e); entries.value = []; }
         finally { loading.value = false; }
+      }
+      function chooseFiles() { if (fileInput.value) fileInput.value.click(); }
+      function onInput(event) { uploadFiles(event.target.files); }
+      function onDrop(event) {
+        dragging.value = false;
+        uploadFiles(event.dataTransfer.files);
+      }
+      async function uploadFiles(fileList) {
+        const list = Array.from(fileList || []);
+        if (!list.length) return;
+        uploading.value = true;
+        error.value = '';
+        const ok = await uploadMediaFiles(list, {
+          library: libraryId.value,
+          path: path.value,
+          maxUploadMB: maxUploadMB.value,
+          onProgress: (current, total) => {
+            progress.value = t('media.uploading_progress', { current, total }, 'Uploading {current} of {total}…');
+          }
+        });
+        uploading.value = false;
+        progress.value = '';
+        if (fileInput.value) fileInput.value.value = '';
+        if (ok) {
+          HP.toast('success', t('media.uploaded', { count: ok }, '{count} file(s) uploaded'));
+          load();
+        }
       }
       function close() { emit('update:visible', false); }
       function openFolder(entry) { path.value = entry.path; load(); }
@@ -723,8 +777,10 @@
       });
 
       return {
-        libraries, libraryId, path, entries, loading, error, selected, crumbs, folders, files, currentLibrary, choosing, imagesOnly,
+        libraries, libraryId, path, entries, loading, uploading, progress, dragging, fileInput, error, selected,
+        crumbs, folders, files, currentLibrary, choosing, imagesOnly, accept, maxUploadMB,
         close, openFolder, goCrumb, selectLibrary, selectFile, insert, choose, activate,
+        chooseFiles, onInput, onDrop,
         kindIcon, kindLabel, formatBytes: HP.formatBytes, t
       };
     },
@@ -738,33 +794,38 @@
               <i v-if="index < crumbs.length - 1" class="pi pi-angle-right"></i>
             </template>
           </div>
+          <PButton :label="uploading ? (progress || t('media.uploading', {}, 'Uploading…')) : t('media.upload', {}, 'Upload')" icon="pi pi-upload" size="small" :loading="uploading" @click="chooseFiles" class="media-picker-upload" />
+          <input ref="fileInput" type="file" :accept="accept" multiple class="hidden-input" @change="onInput" />
         </div>
         <PMessage v-if="error" severity="error" :closable="false">{{ error }}</PMessage>
-        <div v-if="loading" class="media-picker-loading"><PProgressSpinner strokeWidth="3" /></div>
-        <div v-else-if="entries.length === 0 || (!files.length && !folders.length)" class="media-picker-empty">
-          <i class="pi pi-folder-open"></i>
-          <span>{{ imagesOnly ? t('media.no_images', {}, 'No images in this folder') : t('media.empty_title', {}, 'This folder is empty') }}</span>
-        </div>
-        <template v-else>
-          <div v-if="folders.length" class="media-folders compact">
-            <button v-for="folder in folders" :key="folder.path" class="media-folder" @click="openFolder(folder)">
-              <i class="pi pi-folder"></i><span>{{ folder.name }}</span><i class="pi pi-angle-right"></i>
-            </button>
-          </div>
-          <div v-if="!files.length" class="media-picker-empty compact">
+        <div class="media-picker-body" :class="{ dragging }" @dragover.prevent="dragging = true" @dragleave.prevent="dragging = false" @drop.prevent="onDrop">
+          <div v-if="loading" class="media-picker-loading"><PProgressSpinner strokeWidth="3" /></div>
+          <div v-else-if="entries.length === 0 || (!files.length && !folders.length)" class="media-picker-empty">
+            <i class="pi pi-folder-open"></i>
             <span>{{ imagesOnly ? t('media.no_images', {}, 'No images in this folder') : t('media.empty_title', {}, 'This folder is empty') }}</span>
+            <PButton :label="t('media.upload', {}, 'Upload')" icon="pi pi-upload" size="small" :loading="uploading" @click="chooseFiles" />
           </div>
-          <div v-else class="media-picker-grid">
-            <button v-for="file in files" :key="file.path" class="media-pick-item" :class="{ selected: selected && selected.path === file.path }" @click="selectFile(file)" @dblclick="activate(file)">
-              <span class="media-pick-thumb">
-                <img v-if="file.kind === 'image'" :src="file.preview_url" :alt="file.name" loading="lazy" />
-                <i v-else :class="kindIcon(file.kind)"></i>
-              </span>
-              <span class="media-pick-name">{{ file.name }}</span>
-              <small>{{ kindLabel(file.kind) }} · {{ formatBytes(file.size) }}</small>
-            </button>
-          </div>
-        </template>
+          <template v-else>
+            <div v-if="folders.length" class="media-picker-folders">
+              <button v-for="folder in folders" :key="folder.path" class="media-folder" @click="openFolder(folder)">
+                <i class="pi pi-folder"></i><span>{{ folder.name }}</span><i class="pi pi-angle-right"></i>
+              </button>
+            </div>
+            <div v-if="!files.length" class="media-picker-empty compact">
+              <span>{{ imagesOnly ? t('media.no_images', {}, 'No images in this folder') : t('media.empty_title', {}, 'This folder is empty') }}</span>
+            </div>
+            <div v-else class="media-picker-grid">
+              <button v-for="file in files" :key="file.path" class="media-pick-item" :class="{ selected: selected && selected.path === file.path }" @click="selectFile(file)" @dblclick="activate(file)">
+                <span class="media-pick-thumb">
+                  <img v-if="file.kind === 'image'" :src="file.preview_url" :alt="file.name" loading="lazy" />
+                  <i v-else :class="kindIcon(file.kind)"></i>
+                </span>
+                <span class="media-pick-name">{{ file.name }}</span>
+                <small>{{ kindLabel(file.kind) }} · {{ formatBytes(file.size) }}</small>
+              </button>
+            </div>
+          </template>
+        </div>
         <template #footer>
           <span class="media-picker-selected">{{ selected ? selected.path : (choosing ? t('media.pick_image_hint', {}, 'Choose an image.') : t('media.pick_hint', {}, 'Choose a file to insert.')) }}</span>
           <PButton text :label="t('common.cancel', {}, 'Cancel')" @click="close" />

@@ -438,6 +438,8 @@
   "nav.profile": "프로필",
   "nav.settings": "설정",
   "nav.themes": "테마",
+  "nav.version_current": "{version} · 최신 버전입니다",
+  "nav.version_update": "{current} · {latest} 업데이트 가능",
   "plugins.add": "플러그인 추가",
   "plugins.add_hint": "Go 모듈 경로를 입력하세요. 패널이 module.imports에 추가하고 hugo mod tidy를 실행합니다.",
   "plugins.added": "플러그인이 추가되었습니다",

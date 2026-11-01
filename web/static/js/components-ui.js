@@ -373,6 +373,29 @@
         const lang = state.languages.find((l) => l.code === HP.i18n.lang);
         return lang ? (lang.code.split('-')[0] || lang.code).toUpperCase() : 'EN';
       });
+      const latestVersion = ref('');
+      const updateAvailable = ref(false);
+      const panelVersionState = computed(() => {
+        if (!latestVersion.value) return '';
+        return updateAvailable.value ? 'is-outdated' : 'is-current';
+      });
+      const panelVersionTitle = computed(() => {
+        if (!latestVersion.value) return 'v' + state.version;
+        if (updateAvailable.value) {
+          return t('nav.version_update', { current: 'v' + state.version, latest: 'v' + latestVersion.value }, '{current} · {latest} available');
+        }
+        return t('nav.version_current', { version: 'v' + state.version }, '{version} · up to date');
+      });
+      async function checkPanelVersion() {
+        try {
+          const data = await HP.api('/panel/version');
+          latestVersion.value = data && data.latest_version ? String(data.latest_version) : '';
+          updateAvailable.value = !!(data && data.update_available);
+        } catch (e) {
+          // The release check is best effort; keep the badge neutral when it
+          // is unavailable (offline, GitHub unreachable, and so on).
+        }
+      }
 
       const navItems = computed(() => [
         { to: '/dashboard', icon: 'pi pi-home', label: t('nav.dashboard', {}, 'Dashboard') },
@@ -457,9 +480,13 @@
       function openUserMenu(e) { userMenu.value.toggle(e); }
       function openLangMenu(e) { langMenu.value.toggle(e); }
       watch(() => route.path, () => { mobileOpen.value = false; });
-      onMounted(() => { document.documentElement.classList.toggle('is-collapsed-pref', collapsed.value); });
+      onMounted(() => {
+        document.documentElement.classList.toggle('is-collapsed-pref', collapsed.value);
+        if (state.user) checkPanelVersion();
+      });
       return {
         state, route, repoURL, collapsed, mobileOpen, search, userMenu, langMenu, isDark, langLabel,
+        latestVersion, updateAvailable, panelVersionState, panelVersionTitle,
         navItems, isActive, pageTitle, pageComponent, navigate, toggleCollapsed, submitSearch,
         languageItems, userMenuItems, openUserMenu, openLangMenu, toggleTheme: () => HP.setTheme(isDark.value ? 'light' : 'dark'),
         installApp: HP.installApp, initials: HP.initials, reload: () => location.reload(), t
@@ -493,7 +520,7 @@
                 <span>{{ t('nav.github', {}, 'GitHub') }}</span>
                 <i class="pi pi-external-link sidebar-link-external"></i>
               </a>
-              <span class="sidebar-version" :title="'v' + state.version">v{{ state.version }}</span>
+              <span class="sidebar-version" :class="panelVersionState" :title="panelVersionTitle">v{{ state.version }}</span>
             </div>
             <button class="user-card" @click="openUserMenu($event)">
               <span class="avatar">{{ initials(state.user.username) }}</span>

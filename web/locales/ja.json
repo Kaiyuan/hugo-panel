@@ -438,6 +438,8 @@
   "nav.profile": "プロフィール",
   "nav.settings": "設定",
   "nav.themes": "テーマ",
+  "nav.version_current": "{version} · 最新版です",
+  "nav.version_update": "{current} · {latest} に更新できます",
   "plugins.add": "プラグインを追加",
   "plugins.add_hint": "Go モジュールのパスを入力します。パネルが module.imports に追加し、hugo mod tidy を実行します。",
   "plugins.added": "プラグインが追加されました",

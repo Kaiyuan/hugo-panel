@@ -268,6 +268,8 @@ small, .text-sm { font-size: 14px; }
   flex: none; padding: 3px 7px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-soft);
   color: var(--muted); font-family: var(--mono); font-size: 12px; line-height: 1.3; white-space: nowrap;
 }
+.sidebar-version.is-current { color: var(--success); background: var(--success-soft); border-color: var(--success); }
+.sidebar-version.is-outdated { color: var(--warn); background: var(--warn-soft); border-color: var(--warn); }
 .avatar {
   width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: var(--accent-contrast);
   display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex: none;
@@ -1292,6 +1294,19 @@ html body .p-button:not(.p-button-icon-only):not(.p-button-sm) {
 
 .media-picker-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .media-picker-toolbar .media-breadcrumb { margin-bottom: 0; }
+.media-picker-upload { margin-left: auto; }
+.media-picker-body { border-radius: 10px; transition: outline-color .15s ease; outline: 2px dashed transparent; outline-offset: 3px; }
+.media-picker-body.dragging { outline-color: var(--accent); }
+/* Folders share the file grid so both use identical column widths. */
+.media-picker-folders {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+  padding: 2px;
+  margin-bottom: 10px;
+}
+.media-picker-folders .media-folder { width: 100%; min-width: 0; }
+.media-picker-folders .media-folder span { max-width: none; flex: 1 1 auto; min-width: 0; }
 .media-picker-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));

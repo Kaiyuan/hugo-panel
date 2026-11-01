@@ -438,6 +438,8 @@
   "nav.profile": "Profil",
   "nav.settings": "Einstellungen",
   "nav.themes": "Themes",
+  "nav.version_current": "{version} · aktuell",
+  "nav.version_update": "{current} · {latest} verfügbar",
   "plugins.add": "Plugin hinzufügen",
   "plugins.add_hint": "Einen Go-Modulpfad eingeben. Das Panel trägt ihn in module.imports ein und führt hugo mod tidy aus.",
   "plugins.added": "Plugin hinzugefügt",
