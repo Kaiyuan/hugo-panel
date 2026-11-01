@@ -524,6 +524,7 @@ pre code {
   text-transform: uppercase;
   color: #8b8b95;
 }
+.code-head-sub { border-top: 1px solid var(--code-border); }
 .copy-btn {
   border: 1px solid rgba(255, 255, 255, .16);
   background: transparent;

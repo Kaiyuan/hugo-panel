@@ -310,7 +310,7 @@
             args:
                 COMMIT: ${COMMIT:-none}
                 BUILD_TIME: ${BUILD_TIME:-unknown}
-        image: kaiyuan/hugo-panel:latest
+        image: hugo-panel:local
         container_name: hugo-panel
         restart: unless-stopped
         ports:
@@ -325,6 +325,11 @@
             # Host paths are configured in .env (defaults keep them next to this file).
             - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
             - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"</code></pre>
+            <div class="code-head code-head-sub">
+              <span>start</span>
+              <button class="copy-btn" type="button" data-copy="snippet-compose-run" data-i18n="start.copy">复制</button>
+            </div>
+<pre id="snippet-compose-run"><code>docker compose up -d --build</code></pre>
           </div>
         </div>
 

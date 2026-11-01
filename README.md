@@ -55,62 +55,53 @@ docker run -d \
 
 ### Docker Compose
 
-仓库内的 [`docker-compose.yml`](./docker-compose.yml) 使用本地源码构建镜像，不依赖远程镜像：
+#### 使用已发布的镜像（推荐）
+
+创建 `docker-compose.yml`：
 
 ```yaml
 services:
   hugo-panel:
-    build: .
-    image: hugo-panel:local
+    image: kaiyuan/hugo-panel:latest
+    container_name: hugo-panel
     restart: unless-stopped
     network_mode: bridge
     ports:
       - "8080:8080"
     environment:
+      TZ: Asia/Shanghai
       HUGO_DIR: /app/hugo
       PUBLIC_URL: https://panel.example.com
     volumes:
       - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
       - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
 ```
-通过拉取 Docker 创建
-```yaml
-services:
-    hugo-panel:
-        # Build the image locally from this repository instead of pulling a remote image.
-        build:
-            context: .
-            dockerfile: Dockerfile
-            args:
-                COMMIT: ${COMMIT:-none}
-                BUILD_TIME: ${BUILD_TIME:-unknown}
-        image: kaiyuan/hugo-panel:latest
-        container_name: hugo-panel
-        restart: unless-stopped
-        ports:
-            - "8080:8080"
-        network_mode: bridge
-        environment:
-            TZ: Asia/Shanghai
-            HUGO_DIR: /app/hugo
-            # Public URL of this panel, used for password-reset links.
-            PUBLIC_URL: http://localhost:8080
-        volumes:
-            # Host paths are configured in .env (defaults keep them next to this file).
-            - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
-            - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
-```
 
-挂载目录通过 `.env` 配置，未设置时使用默认相对路径：
+挂载目录可通过同目录下的 `.env` 配置，未设置时使用默认相对路径：
 
 ```dotenv
 HOST_DATA_DIR=./data
 HOST_HUGO_DIR=./hugo
 ```
 
+启动并查看日志：
+
 ```bash
+docker compose up -d
+docker compose logs -f hugo-panel
+```
+
+#### 从源码构建
+
+仓库内的 [`docker-compose.yml`](./docker-compose.yml) 使用本地源码构建镜像，不依赖远程镜像：
+
+```bash
+git clone https://github.com/Kaiyuan/hugo-panel.git
+cd hugo-panel
 docker compose up -d --build
 ```
+
+然后打开 `http://服务器地址:8080`，按向导创建管理员。
 
 SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首次启动后到设置页配置。
 
