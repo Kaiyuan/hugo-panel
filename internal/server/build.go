@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Kaiyuan/hugo-panel/internal/deploy"
 	"github.com/Kaiyuan/hugo-panel/internal/hugo"
 	"github.com/Kaiyuan/hugo-panel/internal/mailer"
 	"github.com/Kaiyuan/hugo-panel/internal/settings"
@@ -31,10 +32,14 @@ func (s *Server) handleBuildRun(w http.ResponseWriter, r *http.Request, sess sto
 		return
 	}
 	_ = s.settings.Update(ctx, map[string]string{settings.KeyLastBuild: s.hugo.MarshalLastBuild()})
+	var deployed *deploy.Result
+	if result.Success {
+		deployed = s.deployAfterBuild(ctx)
+	}
 	if !result.Success {
 		go s.notifyBuildFailure(site, result)
 	}
-	writeJSON(w, http.StatusOK, result)
+	writeJSON(w, http.StatusOK, buildResponse{BuildResult: result, Deploy: deployed})
 }
 
 // buildAfterSave starts a background build when the build_on_save setting is
@@ -62,7 +67,9 @@ func (s *Server) runBackgroundBuild() {
 	_ = s.settings.Update(ctx, map[string]string{settings.KeyLastBuild: s.hugo.MarshalLastBuild()})
 	if !result.Success {
 		s.notifyBuildFailure(site, result)
+		return
 	}
+	s.deployAfterBuild(ctx)
 }
 
 func (s *Server) notifyBuildFailure(site *hugo.Site, result *hugo.BuildResult) {

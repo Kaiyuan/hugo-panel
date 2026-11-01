@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 	"os"
+	"os/exec"
 	"runtime"
 	"strings"
 	"time"
@@ -65,6 +66,8 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request, sess store
 	latestHugo := s.hugo.LatestHugoVersion(ctx)
 	hugoOutdated := state.HugoAvailable && latestHugo != "" && state.HugoVersion != "" &&
 		!hugo.HugoVersionAtLeast(state.HugoVersion, latestHugo)
+	_, rsyncErr := exec.LookPath("rsync")
+	_, sshErr := exec.LookPath("ssh")
 	writeJSON(w, http.StatusOK, map[string]any{
 		"panel_version":       s.version,
 		"go_version":          runtime.Version(),
@@ -81,6 +84,8 @@ func (s *Server) handleSystem(w http.ResponseWriter, r *http.Request, sess store
 		"hugo_update_url":     hugo.HugoInstallURL,
 		"go_available":        state.GoAvailable,
 		"git_available":       state.GitAvailable,
+		"rsync_available":     rsyncErr == nil,
+		"ssh_available":       sshErr == nil,
 		"config_exists":       cfg.Exists,
 		"config_path":         cfg.ConfigPath,
 		"site_title":          cfg.SiteTitle,

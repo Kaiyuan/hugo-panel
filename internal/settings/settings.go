@@ -9,6 +9,7 @@ import (
 
 	"github.com/Kaiyuan/hugo-panel/internal/ai"
 	"github.com/Kaiyuan/hugo-panel/internal/config"
+	"github.com/Kaiyuan/hugo-panel/internal/deploy"
 	"github.com/Kaiyuan/hugo-panel/internal/store"
 	"github.com/Kaiyuan/hugo-panel/internal/translate"
 )
@@ -38,6 +39,19 @@ const (
 	KeyNotifications     = "notifications_enabled"
 	KeyLastBuild         = "last_build"
 	KeySetupCompletedAt  = "setup_completed_at"
+
+	KeyDeployEnabled       = "deploy_enabled"
+	KeyDeployHost          = "deploy_host"
+	KeyDeployPort          = "deploy_port"
+	KeyDeployUser          = "deploy_user"
+	KeyDeployPath          = "deploy_path"
+	KeyDeploySource        = "deploy_source"
+	KeyDeployDelete        = "deploy_delete"
+	KeyDeployStrictHostKey = "deploy_strict_host_key"
+	KeyDeploySSHKey        = "deploy_ssh_key"
+	KeyDeployKnownHosts    = "deploy_known_hosts"
+	KeyDeployRsyncPath     = "deploy_rsync_path"
+	KeyLastDeploy          = "last_deploy"
 )
 
 type Manager struct {
@@ -67,28 +81,39 @@ func (m *Manager) defaults() map[string]string {
 		hugoDir = m.cfg.DefaultHugoDir
 	}
 	return map[string]string{
-		KeyDefaultLanguage:   "en",
-		KeyDefaultTheme:      "system",
-		KeyHugoDir:           hugoDir,
-		KeyHugoBinary:        m.cfg.DefaultHugoBin,
-		KeyPublicURL:         "",
-		KeySMTPEnabled:       "false",
-		KeySMTPHost:          "",
-		KeySMTPPort:          "587",
-		KeySMTPUsername:      "",
-		KeySMTPPassword:      "",
-		KeySMTPFrom:          "",
-		KeySMTPFromName:      "Hugo Panel",
-		KeySMTPSecurity:      "starttls",
-		KeyTranslateProvider: "",
-		KeyTranslateEndpoint: "",
-		KeyTranslateAPIKey:   "",
-		KeyAIEnabled:         "false",
-		KeyAIBaseURL:         ai.DefaultBaseURL,
-		KeyAIModel:           ai.DefaultModel,
-		KeyAIAPIKey:          "",
-		KeyBuildOnSave:       "false",
-		KeyNotifications:     "true",
+		KeyDefaultLanguage:     "en",
+		KeyDefaultTheme:        "system",
+		KeyHugoDir:             hugoDir,
+		KeyHugoBinary:          m.cfg.DefaultHugoBin,
+		KeyPublicURL:           "",
+		KeySMTPEnabled:         "false",
+		KeySMTPHost:            "",
+		KeySMTPPort:            "587",
+		KeySMTPUsername:        "",
+		KeySMTPPassword:        "",
+		KeySMTPFrom:            "",
+		KeySMTPFromName:        "Hugo Panel",
+		KeySMTPSecurity:        "starttls",
+		KeyTranslateProvider:   "",
+		KeyTranslateEndpoint:   "",
+		KeyTranslateAPIKey:     "",
+		KeyAIEnabled:           "false",
+		KeyAIBaseURL:           ai.DefaultBaseURL,
+		KeyAIModel:             ai.DefaultModel,
+		KeyAIAPIKey:            "",
+		KeyBuildOnSave:         "false",
+		KeyNotifications:       "true",
+		KeyDeployEnabled:       "false",
+		KeyDeployHost:          "",
+		KeyDeployPort:          "22",
+		KeyDeployUser:          "",
+		KeyDeployPath:          "",
+		KeyDeploySource:        "public",
+		KeyDeployDelete:        "true",
+		KeyDeployStrictHostKey: "true",
+		KeyDeploySSHKey:        "",
+		KeyDeployKnownHosts:    "",
+		KeyDeployRsyncPath:     "",
 	}
 }
 
@@ -186,6 +211,48 @@ func (m *Manager) AI(ctx context.Context) (ai.Config, error) {
 		Model:   all[KeyAIModel],
 		APIKey:  all[KeyAIAPIKey],
 	}.Normalized(), nil
+}
+
+// Deploy returns the effective rsync deployment configuration. The private key
+// and known_hosts content are only used by the deployer and are never exposed
+// through the settings API.
+func (m *Manager) Deploy(ctx context.Context, siteDir string) (deploy.Config, error) {
+	all, err := m.All(ctx)
+	if err != nil {
+		return deploy.Config{}, err
+	}
+	return DeployConfig(all, siteDir), nil
+}
+
+// DeployConfig builds a deployment configuration from raw setting values. It is
+// also used by the settings handler to validate a patch before saving it.
+func DeployConfig(values map[string]string, siteDir string) deploy.Config {
+	port, _ := strconv.Atoi(values[KeyDeployPort])
+	if port == 0 {
+		port = 22
+	}
+	source := strings.TrimSpace(values[KeyDeploySource])
+	if source == "" {
+		source = "public"
+	}
+	if filepath.IsAbs(source) {
+		source = filepath.Clean(source)
+	} else if siteDir != "" {
+		source = filepath.Join(siteDir, source)
+	}
+	return deploy.Config{
+		Enabled:       parseBool(values[KeyDeployEnabled]),
+		Host:          strings.TrimSpace(values[KeyDeployHost]),
+		Port:          port,
+		User:          strings.TrimSpace(values[KeyDeployUser]),
+		Path:          strings.TrimSpace(values[KeyDeployPath]),
+		Source:        source,
+		Delete:        parseBool(values[KeyDeployDelete]),
+		StrictHostKey: parseBool(values[KeyDeployStrictHostKey]),
+		SSHKey:        values[KeyDeploySSHKey],
+		KnownHosts:    values[KeyDeployKnownHosts],
+		RsyncPath:     strings.TrimSpace(values[KeyDeployRsyncPath]),
+	}.Normalized()
 }
 
 func (m *Manager) SMTPOverrides() []string {

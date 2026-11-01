@@ -22,6 +22,7 @@ import (
 
 	"github.com/Kaiyuan/hugo-panel/internal/ai"
 	"github.com/Kaiyuan/hugo-panel/internal/config"
+	"github.com/Kaiyuan/hugo-panel/internal/deploy"
 	"github.com/Kaiyuan/hugo-panel/internal/hugo"
 	"github.com/Kaiyuan/hugo-panel/internal/i18n"
 	"github.com/Kaiyuan/hugo-panel/internal/mailer"
@@ -41,6 +42,7 @@ type Server struct {
 	i18n         *i18n.Manager
 	mailer       *mailer.Mailer
 	hugo         *hugo.Service
+	deployer     *deploy.Service
 	media        *media.Manager
 	translator   *translate.Client
 	aiClient     *ai.Client
@@ -73,6 +75,10 @@ func New(cfg *config.Config, st *store.Store, set *settings.Manager, tr *i18n.Ma
 	if err != nil {
 		return nil, fmt.Errorf("read index.html: %w", err)
 	}
+	deployer := deploy.NewService()
+	if raw, ok, err := st.GetSetting(context.Background(), settings.KeyLastDeploy); err == nil && ok {
+		deployer.LoadPersisted(raw)
+	}
 	return &Server{
 		cfg:          cfg,
 		store:        st,
@@ -80,6 +86,7 @@ func New(cfg *config.Config, st *store.Store, set *settings.Manager, tr *i18n.Ma
 		i18n:         tr,
 		mailer:       ml,
 		hugo:         hs,
+		deployer:     deployer,
 		media:        media.NewManager(st, func(ctx context.Context) string { return set.HugoDir(ctx) }),
 		translator:   translate.New(),
 		aiClient:     ai.New(),
@@ -176,6 +183,8 @@ func (s *Server) Handler() http.Handler {
 
 	mux.HandleFunc("GET /api/build", s.requireAuth(s.handleBuildGet))
 	mux.HandleFunc("POST /api/build", s.requireAuth(s.handleBuildRun))
+	mux.HandleFunc("GET /api/deploy", s.requireAuth(s.handleDeployGet))
+	mux.HandleFunc("POST /api/deploy", s.requireAuth(s.handleDeployRun))
 
 	mux.HandleFunc("GET /api/settings", s.requireAuth(s.handleSettingsGet))
 	mux.HandleFunc("PUT /api/settings", s.requireAuth(s.handleSettingsSave))

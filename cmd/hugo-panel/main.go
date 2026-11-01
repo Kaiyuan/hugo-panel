@@ -94,7 +94,7 @@ func run() error {
 		Handler:           srv.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       5 * time.Minute,
-		WriteTimeout:      25 * time.Minute,
+		WriteTimeout:      45 * time.Minute,
 		IdleTimeout:       2 * time.Minute,
 		MaxHeaderBytes:    1 << 20,
 	}

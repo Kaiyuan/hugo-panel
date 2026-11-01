@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Kaiyuan/hugo-panel/internal/deploy"
 	"github.com/Kaiyuan/hugo-panel/internal/mailer"
 	"github.com/Kaiyuan/hugo-panel/internal/settings"
 	"github.com/Kaiyuan/hugo-panel/internal/store"
@@ -30,6 +31,7 @@ type settingsView struct {
 	SMTP            smtpView        `json:"smtp"`
 	Translation     translationView `json:"translation"`
 	AI              aiView          `json:"ai"`
+	Deploy          deployView      `json:"deploy"`
 	EnvOverrides    []string        `json:"env_overrides"`
 	SetupCompleted  string          `json:"setup_completed_at,omitempty"`
 }
@@ -58,6 +60,21 @@ type smtpView struct {
 	PasswordSet bool   `json:"password_set"`
 }
 
+type deployView struct {
+	Enabled       bool   `json:"enabled"`
+	Host          string `json:"host"`
+	Port          int    `json:"port"`
+	User          string `json:"user"`
+	Path          string `json:"path"`
+	Source        string `json:"source"`
+	Delete        bool   `json:"delete"`
+	StrictHostKey bool   `json:"strict_host_key"`
+	RsyncPath     string `json:"rsync_path"`
+	SSHKeySet     bool   `json:"ssh_key_set"`
+	KnownHostsSet bool   `json:"known_hosts_set"`
+	Configured    bool   `json:"configured"`
+}
+
 func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 	all, err := s.settings.All(ctx)
 	if err != nil {
@@ -72,6 +89,10 @@ func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 		return settingsView{}, err
 	}
 	aiCfg, err := s.settings.AI(ctx)
+	if err != nil {
+		return settingsView{}, err
+	}
+	deployCfg, err := s.settings.Deploy(ctx, s.settings.HugoDir(ctx))
 	if err != nil {
 		return settingsView{}, err
 	}
@@ -110,7 +131,28 @@ func (s *Server) settingsView(ctx context.Context) (settingsView, error) {
 			Model:     aiCfg.Model,
 			APIKeySet: aiCfg.APIKey != "",
 		},
+		Deploy: deployView{
+			Enabled:       deployCfg.Enabled,
+			Host:          deployCfg.Host,
+			Port:          deployCfg.Port,
+			User:          deployCfg.User,
+			Path:          deployCfg.Path,
+			Source:        deploySource(all),
+			Delete:        deployCfg.Delete,
+			StrictHostKey: deployCfg.StrictHostKey,
+			RsyncPath:     deployCfg.RsyncPath,
+			SSHKeySet:     deployCfg.SSHKey != "",
+			KnownHostsSet: deployCfg.KnownHosts != "",
+			Configured:    deployCfg.Validate() == nil,
+		},
 	}, nil
+}
+
+func deploySource(all map[string]string) string {
+	if v := strings.TrimSpace(all[settings.KeyDeploySource]); v != "" {
+		return v
+	}
+	return "public"
 }
 
 func (s *Server) handleSettingsGet(w http.ResponseWriter, r *http.Request, sess store.Session) {
@@ -148,6 +190,19 @@ type settingsPatch struct {
 	AIModel           *string `json:"ai_model"`
 	AIAPIKey          *string `json:"ai_api_key"`
 	ClearAIKey        bool    `json:"clear_ai_api_key"`
+	DeployEnabled     *bool   `json:"deploy_enabled"`
+	DeployHost        *string `json:"deploy_host"`
+	DeployPort        *int    `json:"deploy_port"`
+	DeployUser        *string `json:"deploy_user"`
+	DeployPath        *string `json:"deploy_path"`
+	DeploySource      *string `json:"deploy_source"`
+	DeployDelete      *bool   `json:"deploy_delete"`
+	DeployStrictHost  *bool   `json:"deploy_strict_host_key"`
+	DeployRsyncPath   *string `json:"deploy_rsync_path"`
+	DeploySSHKey      *string `json:"deploy_ssh_key"`
+	ClearDeploySSHKey bool    `json:"clear_deploy_ssh_key"`
+	DeployKnownHosts  *string `json:"deploy_known_hosts"`
+	ClearDeployKnown  bool    `json:"clear_deploy_known_hosts"`
 }
 
 func (s *Server) handleSettingsSave(w http.ResponseWriter, r *http.Request, sess store.Session) {
@@ -336,6 +391,101 @@ func (s *Server) handleSettingsSave(w http.ResponseWriter, r *http.Request, sess
 		}
 		values[settings.KeyAIAPIKey] = strings.TrimSpace(*req.AIAPIKey)
 	}
+	if req.DeployEnabled != nil {
+		values[settings.KeyDeployEnabled] = strconv.FormatBool(*req.DeployEnabled)
+	}
+	if req.DeployHost != nil {
+		host := strings.TrimSpace(*req.DeployHost)
+		if host != "" && !deploy.ValidHost(host) {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid remote host")
+			return
+		}
+		values[settings.KeyDeployHost] = host
+	}
+	if req.DeployPort != nil {
+		if *req.DeployPort < 1 || *req.DeployPort > 65535 {
+			writeError(w, http.StatusBadRequest, "invalid_request", "SSH port must be between 1 and 65535")
+			return
+		}
+		values[settings.KeyDeployPort] = strconv.Itoa(*req.DeployPort)
+	}
+	if req.DeployUser != nil {
+		user := strings.TrimSpace(*req.DeployUser)
+		if user != "" && !deploy.ValidUser(user) {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid SSH user")
+			return
+		}
+		values[settings.KeyDeployUser] = user
+	}
+	if req.DeployPath != nil {
+		path := strings.TrimSpace(*req.DeployPath)
+		if path != "" && !deploy.ValidRemotePath(path) {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid remote directory")
+			return
+		}
+		values[settings.KeyDeployPath] = path
+	}
+	if req.DeploySource != nil {
+		source := strings.TrimSpace(*req.DeploySource)
+		if source != "" && !validDeploySource(source) {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid local source directory")
+			return
+		}
+		values[settings.KeyDeploySource] = source
+	}
+	if req.DeployDelete != nil {
+		values[settings.KeyDeployDelete] = strconv.FormatBool(*req.DeployDelete)
+	}
+	if req.DeployStrictHost != nil {
+		values[settings.KeyDeployStrictHostKey] = strconv.FormatBool(*req.DeployStrictHost)
+	}
+	if req.DeployRsyncPath != nil {
+		rsyncPath := strings.TrimSpace(*req.DeployRsyncPath)
+		if rsyncPath != "" && (len(rsyncPath) > 500 || strings.ContainsAny(rsyncPath, "\x00\r\n\t ")) {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid remote rsync path")
+			return
+		}
+		values[settings.KeyDeployRsyncPath] = rsyncPath
+	}
+	if req.ClearDeploySSHKey {
+		values[settings.KeyDeploySSHKey] = ""
+	} else if req.DeploySSHKey != nil && strings.TrimSpace(*req.DeploySSHKey) != "" {
+		if !deploy.ValidPrivateKey(*req.DeploySSHKey) {
+			writeError(w, http.StatusBadRequest, "invalid_request", "The SSH private key does not look valid")
+			return
+		}
+		values[settings.KeyDeploySSHKey] = *req.DeploySSHKey
+	}
+	if req.ClearDeployKnown {
+		values[settings.KeyDeployKnownHosts] = ""
+	} else if req.DeployKnownHosts != nil && strings.TrimSpace(*req.DeployKnownHosts) != "" {
+		if !deploy.ValidKnownHosts(*req.DeployKnownHosts) {
+			writeError(w, http.StatusBadRequest, "invalid_request", "Invalid known_hosts content")
+			return
+		}
+		values[settings.KeyDeployKnownHosts] = *req.DeployKnownHosts
+	}
+	if len(values) > 0 {
+		all, err := s.settings.All(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "Could not load settings")
+			return
+		}
+		merged := make(map[string]string, len(all)+len(values))
+		for k, v := range all {
+			merged[k] = v
+		}
+		for k, v := range values {
+			merged[k] = v
+		}
+		finalDeploy := settings.DeployConfig(merged, s.settings.HugoDir(r.Context()))
+		if finalDeploy.Enabled {
+			if err := finalDeploy.Validate(); err != nil {
+				writeError(w, http.StatusBadRequest, "invalid_request", "Deployment is enabled but incomplete: "+err.Error())
+				return
+			}
+		}
+	}
 	if err := s.settings.Update(r.Context(), values); err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "Could not save settings")
 		return
@@ -434,4 +584,15 @@ func (s *Server) handleLocaleTemplate(w http.ResponseWriter, r *http.Request, se
 func parseBoolSetting(v string) bool {
 	b, _ := strconv.ParseBool(v)
 	return b
+}
+
+func validDeploySource(source string) bool {
+	if !deploy.ValidSource(source) {
+		return false
+	}
+	if filepath.IsAbs(source) {
+		return true
+	}
+	clean := filepath.Clean(source)
+	return clean != ".." && !strings.HasPrefix(clean, ".."+string(filepath.Separator))
 }

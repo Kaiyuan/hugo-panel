@@ -34,7 +34,7 @@ ARG HUGO_VERSION=
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-      ca-certificates git golang-go gosu libgcc-s1 libstdc++6 tzdata wget; \
+      ca-certificates git golang-go gosu libgcc-s1 libstdc++6 openssh-client rsync tzdata wget; \
     rm -rf /var/lib/apt/lists/*; \
     case "$(dpkg --print-architecture)" in \
       amd64) hugo_arch=amd64 ;; \

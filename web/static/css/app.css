@@ -863,6 +863,8 @@ small, .text-sm { font-size: 14px; }
 
 /* ---------- Settings ---------- */
 .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.settings-grid + .panel-card { margin-top: 18px; }
+.deploy-output-head { margin-top: 18px; margin-bottom: 8px; }
 .profile-head { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
 .profile-head > div { display: flex; flex-direction: column; gap: 2px; }
 .profile-head strong { font-size: 16px; }

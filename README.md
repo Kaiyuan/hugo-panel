@@ -25,6 +25,7 @@
 - **插件管理**：以 Hugo Modules 方式安装/移除插件，执行 `hugo mod tidy`，并显示命令输出与工具链状态。
 - **媒体库**：支持本机目录、S3（含 MinIO 等兼容服务）和 WebDAV 存储库；按文件夹浏览、上传、预览、复制 URL / Markdown、移动、复制和删除。可预览图片、视频、音频、PDF 与文本，其他文档可直接下载；编辑器内可打开媒体选择器插入 URL 或 Markdown。
 - **构建**：在面板中运行 `hugo --gc --minify --cleanDestinationDir`，保留最后一次构建结果；构建失败时可邮件通知管理员。
+- **自动部署**：构建成功后可通过 rsync over SSH 把 `public/` 同步到远程服务器；支持自定义端口、SSH 私钥、known_hosts 主机密钥校验、远程目录与 `--delete`。私钥和 known_hosts 只保存在服务端，API 不会返回。
 - **SMTP**：首次启动后可在设置页配置，也可通过 Docker 环境变量注入；支持密码重置邮件和测试邮件。
 - **多语言**：内置简体中文、繁体中文、英语、法语、意大利语、西班牙语、日语、韩语、德语。每种语言是独立 JSON 文件，按需加载；支持上传自定义翻译，无需重新构建。
 - **亮色 / 暗色主题**：暗色主题使用纯黑 `#000` 背景，适合 OLED 屏幕；默认跟随系统。
@@ -155,6 +156,35 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 
 通过环境变量设置的 SMTP 值会优先于数据库设置，面板中会显示 `ENV` 标记并锁定对应字段。
 
+## Rsync 自动部署
+
+在 **设置 → 部署** 中启用后，每次 Hugo 构建成功都会自动运行 rsync，把静态文件同步到远端服务器。也可以在设置页或构建页点击「立即部署」手动触发。
+
+必填项：
+
+| 字段 | 说明 |
+| --- | --- |
+| 远程主机 | 例如 `example.com`，不要带 `ssh://` 或用户名 |
+| SSH 端口 | 默认 `22` |
+| SSH 用户 | 用于登录远端服务器的用户 |
+| 远程目录 | 远端绝对路径，例如 `/var/www/example.com/` |
+| 本地源目录 | 相对于 Hugo 站点目录，默认 `public` |
+
+SSH 安全设置：
+
+- **SSH 私钥**：粘贴部署用户的私钥内容（OpenSSH 或 PEM 格式）。私钥保存在 SQLite 中，接口只返回 `ssh_key_set`，不会返回内容。留空时使用容器内默认的 SSH 身份。
+- **known_hosts**：开启「验证服务器主机密钥」时必填。可在本机运行以下命令并把输出粘贴进去：
+
+  ```bash
+  ssh-keyscan -p 22 example.com
+  ```
+
+  非标准端口时 known_hosts 中的主机格式为 `[example.com]:2222`，`ssh-keyscan -p 2222 example.com` 的输出已符合该格式。
+- **验证服务器主机密钥**：默认开启。关闭后使用 `StrictHostKeyChecking=accept-new`，首次连接会信任未知主机密钥，不建议在生产环境关闭。
+- **远程 rsync 路径**：可选，例如 `/usr/bin/rsync`，用于远端 PATH 中没有 rsync 的情况。
+
+Docker 运行时镜像已包含 `rsync` 和 `openssh-client`。部署用户需要对远端目录有写权限，并且能够通过密钥登录。面板本身不保存 SSH 密码，只支持密钥认证。
+
 ## 开发
 
 需要 Go 1.24+、GCC（SQLite 驱动使用 CGO）以及 Hugo（extended 版推荐，面板会在有新版本时提示升级）。未安装 Hugo 也可以启动面板，但初始化后的构建会失败。无需 Node.js。
@@ -283,6 +313,7 @@ internal/config         环境变量配置
 internal/store          SQLite、用户、会话、设置、密码重置
 internal/settings       设置与环境变量覆盖
 internal/hugo           内容、front matter、配置、主题、模块、构建
+internal/deploy         rsync over SSH 部署、SSH 密钥与 known_hosts 处理
 internal/media          媒体存储库（本机目录、S3、WebDAV）与文件操作
 internal/mailer         SMTP、密码重置/构建失败邮件
 internal/translate      标题翻译（LibreTranslate / DeepL）

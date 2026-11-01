@@ -224,6 +224,10 @@
     name: 'BuildPage',
     setup() {
       const build = ref(null);
+      const deploy = ref(null);
+      const deployEnabled = ref(false);
+      const deployConfigured = ref(false);
+      const deploying = ref(false);
       const loading = ref(true);
       const building = ref(false);
       const error = ref('');
@@ -234,12 +238,18 @@
         loading.value = true;
         error.value = '';
         try {
-          const [data, cfg] = await Promise.all([
+          const [data, cfg, dep] = await Promise.all([
             HP.api('/build'),
-            HP.api('/hugo/config').catch(() => null)
+            HP.api('/hugo/config').catch(() => null),
+            HP.api('/deploy').catch(() => null)
           ]);
           build.value = data.build;
           if (cfg) { siteBase.value = cfg.base_url || ''; configExists.value = !!cfg.exists; }
+          if (dep) {
+            deploy.value = dep.deploy || null;
+            deployEnabled.value = !!dep.enabled;
+            deployConfigured.value = !!dep.configured;
+          }
         } catch (e) { error.value = HP.errorText(e); }
         finally { loading.value = false; }
       }
@@ -251,15 +261,35 @@
           build.value = result;
           if (result.success) HP.toast('success', t('build.success', {}, 'Site built successfully'));
           else HP.toast('error', t('build.failed', {}, 'Build failed'));
+          if (result.deploy) {
+            deploy.value = result.deploy;
+            if (result.deploy.success) HP.toast('success', t('build.deploy_success', {}, 'Deployed to the remote server'));
+            else HP.toast('error', t('build.deploy_failed', {}, 'Deployment failed'));
+          }
         } catch (e) { HP.notifyError(e); }
         finally { building.value = false; }
       }
+      async function deployNow() {
+        deploying.value = true;
+        error.value = '';
+        try {
+          const result = await HP.api('/deploy', { method: 'POST', body: {} });
+          deploy.value = result;
+          if (result && result.success) HP.toast('success', t('build.deploy_success', {}, 'Deployed to the remote server'));
+          else HP.toast('error', t('build.deploy_failed', {}, 'Deployment failed'));
+        } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
+        finally { deploying.value = false; }
+      }
       const status = computed(() => build.value ? build.value.status : 'idle');
+      const deployStatus = computed(() => deploy.value ? deploy.value.status : 'idle');
       const duration = computed(() => build.value && build.value.duration_ms ? (build.value.duration_ms / 1000).toFixed(1) + 's' : '—');
+      const deployDuration = computed(() => deploy.value && deploy.value.duration_ms ? (deploy.value.duration_ms / 1000).toFixed(1) + 's' : '—');
       function copyOutput() { if (build.value) HP.copyText(build.value.output || ''); }
+      function copyDeployOutput() { if (deploy.value) HP.copyText(deploy.value.output || ''); }
       onMounted(load);
       return {
-        build, loading, building, error, siteBase, configExists, status, duration, load, run, copyOutput, safeUrl: HP.safeUrl,
+        build, deploy, deployEnabled, deployConfigured, deploying, loading, building, error, siteBase, configExists,
+        status, deployStatus, duration, deployDuration, load, run, deployNow, copyOutput, copyDeployOutput, safeUrl: HP.safeUrl,
         go: HP.navigate, formatDateTime: HP.formatDateTime, t
       };
     },
@@ -309,6 +339,30 @@
               </div>
               <pre v-if="build" class="console-output large">{{ build.output || t('build.no_output', {}, 'No output.') }}</pre>
               <div v-else class="empty-inline"><i class="pi pi-terminal"></i><span>{{ t('build.no_build_yet', {}, 'Build output will appear here.') }}</span></div>
+            </template>
+          </PCard>
+
+          <PCard class="panel-card output-card">
+            <template #content>
+              <div class="panel-head">
+                <div><h2>{{ t('build.deploy_title', {}, 'Deployment') }}</h2><p>{{ t('build.deploy_hint', {}, 'Rsync status for the last build.') }}</p></div>
+                <div class="head-actions">
+                  <StatusTag v-if="deploy" :status="deployStatus" />
+                  <PButton v-if="deployConfigured" :label="deploying ? t('build.deploy_running', {}, 'Deploying…') : t('build.deploy_now', {}, 'Deploy now')" icon="pi pi-cloud-upload" :loading="deploying" outlined @click="deployNow" />
+                </div>
+              </div>
+              <PMessage v-if="!deployEnabled" severity="info" :closable="false">{{ t('build.deploy_disabled', {}, 'Deployment is disabled. Configure rsync in Settings › Deploy.') }}</PMessage>
+              <template v-if="deploy">
+                <div class="build-facts">
+                  <div><span>{{ t('build.command', {}, 'Command') }}</span><code>{{ deploy.command }}</code></div>
+                  <div><span>{{ t('build.started', {}, 'Started') }}</span><strong>{{ formatDateTime(deploy.started_at) }}</strong></div>
+                  <div><span>{{ t('build.finished', {}, 'Finished') }}</span><strong>{{ formatDateTime(deploy.finished_at) }}</strong></div>
+                  <div><span>{{ t('build.duration_label', {}, 'Duration') }}</span><strong>{{ deployDuration }}</strong></div>
+                </div>
+                <div class="panel-head deploy-output-head"><div><h2>{{ t('settings.deploy_output', {}, 'Deployment output') }}</h2></div><PButton text icon="pi pi-copy" :label="t('common.copy', {}, 'Copy')" @click="copyDeployOutput" /></div>
+                <pre class="console-output large">{{ deploy.output || t('settings.deploy_no_output', {}, 'No deployment output.') }}</pre>
+              </template>
+              <div v-else class="empty-inline"><i class="pi pi-cloud-upload"></i><span>{{ t('build.deploy_never', {}, 'No deployments yet.') }}</span></div>
             </template>
           </PCard>
         </template>

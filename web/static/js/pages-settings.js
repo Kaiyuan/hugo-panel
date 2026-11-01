@@ -11,13 +11,16 @@
       const state = HP.state;
       const route = HP.route;
       const confirm = PrimeVue.useConfirm();
-      const validTabs = ['general', 'email', 'translation', 'ai', 'languages', 'profile'];
+      const validTabs = ['general', 'deploy', 'email', 'translation', 'ai', 'languages', 'profile'];
       const tab = ref(validTabs.indexOf(route.query.tab) >= 0 ? route.query.tab : 'general');
       const settings = ref(null);
       const system = ref(null);
       const loading = ref(true);
       const error = ref('');
       const savingGeneral = ref(false);
+      const savingDeploy = ref(false);
+      const deploying = ref(false);
+      const deployResult = ref(null);
       const upgradingHugo = ref(false);
       const upgradeVisible = ref(false);
       const upgradeVersion = ref('');
@@ -32,6 +35,11 @@
       const testingEmail = ref(false);
       const testTo = ref('');
       const general = reactive({ hugo_dir: '', hugo_binary: 'hugo', public_url: '', default_language: 'en', default_theme: 'system', build_on_save: false });
+      const deploy = reactive({
+        enabled: false, host: '', port: 22, user: '', path: '', source: 'public',
+        delete: true, strict_host_key: true, rsync_path: '', ssh_key: '', known_hosts: '',
+        clear_ssh_key: false, clear_known_hosts: false
+      });
       const email = reactive({
         enabled: false, host: '', port: 587, username: '', password: '', from: '', from_name: 'Hugo Panel',
         security: 'starttls', notifications_enabled: true, clear_password: false
@@ -43,6 +51,12 @@
       const languages = computed(() => state.languages || []);
       const envOverrides = computed(() => (settings.value && settings.value.env_overrides) || []);
       const smtpEnvOverrides = computed(() => envOverrides.value.filter((key) => key.indexOf('smtp_') === 0));
+      const deployToolsReady = computed(() => !system.value || (system.value.rsync_available !== false && system.value.ssh_available !== false));
+      const deployStatus = computed(() => deployResult.value ? deployResult.value.status : 'idle');
+      const deployDuration = computed(() => {
+        if (!deployResult.value || !deployResult.value.duration_ms) return '—';
+        return (deployResult.value.duration_ms / 1000).toFixed(1) + 's';
+      });
       const langOptions = computed(() => languages.value.map((l) => ({ label: l.nativeName || l.name, value: l.code })));
       const themeOptions = computed(() => [
         { label: t('common.system', {}, 'System'), value: 'system' },
@@ -75,6 +89,20 @@
         general.default_language = settings.value.default_language || 'en';
         general.default_theme = settings.value.default_theme || 'system';
         general.build_on_save = !!settings.value.build_on_save;
+        const dp = settings.value.deploy || {};
+        deploy.enabled = !!dp.enabled;
+        deploy.host = dp.host || '';
+        deploy.port = dp.port || 22;
+        deploy.user = dp.user || '';
+        deploy.path = dp.path || '';
+        deploy.source = dp.source || 'public';
+        deploy.delete = dp.delete !== false;
+        deploy.strict_host_key = dp.strict_host_key !== false;
+        deploy.rsync_path = dp.rsync_path || '';
+        deploy.ssh_key = '';
+        deploy.known_hosts = '';
+        deploy.clear_ssh_key = false;
+        deploy.clear_known_hosts = false;
         email.enabled = !!settings.value.smtp.enabled;
         email.host = settings.value.smtp.host || '';
         email.port = settings.value.smtp.port || 587;
@@ -104,9 +132,14 @@
         loading.value = true;
         error.value = '';
         try {
-          const [s, sys] = await Promise.all([HP.api('/settings'), HP.api('/system')]);
+          const [s, sys, dep] = await Promise.all([
+            HP.api('/settings'),
+            HP.api('/system'),
+            HP.api('/deploy').catch(() => null)
+          ]);
           settings.value = s;
           system.value = sys;
+          if (dep) deployResult.value = dep.deploy || null;
           fill();
         } catch (e) { error.value = HP.errorText(e); }
         finally { loading.value = false; }
@@ -127,6 +160,48 @@
           HP.toast('success', t('settings.saved', {}, 'Settings saved'));
         } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
         finally { savingGeneral.value = false; }
+      }
+      async function saveDeploy() {
+        savingDeploy.value = true;
+        error.value = '';
+        try {
+          const body = {
+            deploy_enabled: deploy.enabled,
+            deploy_host: deploy.host,
+            deploy_port: Number(deploy.port) || 22,
+            deploy_user: deploy.user,
+            deploy_path: deploy.path,
+            deploy_source: deploy.source,
+            deploy_delete: deploy.delete,
+            deploy_strict_host_key: deploy.strict_host_key,
+            deploy_rsync_path: deploy.rsync_path,
+            clear_deploy_ssh_key: deploy.clear_ssh_key,
+            clear_deploy_known_hosts: deploy.clear_known_hosts
+          };
+          if (deploy.ssh_key) body.deploy_ssh_key = deploy.ssh_key;
+          if (deploy.known_hosts) body.deploy_known_hosts = deploy.known_hosts;
+          settings.value = await HP.api('/settings', { method: 'PUT', body });
+          fill();
+          HP.toast('success', t('settings.saved', {}, 'Settings saved'));
+          return true;
+        } catch (e) {
+          error.value = HP.errorText(e);
+          HP.notifyError(e);
+          return false;
+        } finally { savingDeploy.value = false; }
+      }
+      async function deployNow() {
+        const saved = await saveDeploy();
+        if (!saved) return;
+        deploying.value = true;
+        error.value = '';
+        try {
+          const res = await HP.api('/deploy', { method: 'POST', body: {} });
+          deployResult.value = res;
+          if (res && res.success) HP.toast('success', t('settings.deploy_result_success', {}, 'Deployment succeeded'));
+          else HP.toast('error', t('settings.deploy_result_failed', {}, 'Deployment failed'));
+        } catch (e) { error.value = HP.errorText(e); HP.notifyError(e); }
+        finally { deploying.value = false; }
       }
       function openUpgrade() {
         upgradeError.value = '';
@@ -359,10 +434,11 @@
       onMounted(load);
       return {
         state, tab, settings, system, loading, error, savingGeneral, savingEmail, savingTranslation, savingAI, savingProfile, savingPassword,
-        testingEmail, testingAI, testTo, general, email, translation, ai, profile, password, languages, envOverrides, smtpEnvOverrides,
+        testingEmail, testingAI, testTo, general, deploy, email, translation, ai, profile, password, languages, envOverrides, smtpEnvOverrides,
+        deployResult, deploying, savingDeploy, deployToolsReady, deployStatus, deployDuration,
         langOptions, themeOptions, securityOptions, providerOptions, addVisible, adding, addForm, fileInput, addError,
         upgradingHugo, upgradeVisible, upgradeVersion, upgradeError, upgradeOutput, openUpgrade, runUpgrade,
-        isEnv, hasSmtpEnv, load, saveGeneral, saveEmail, saveTranslation, saveAI, testAI, testEmail, saveProfile, changePassword, openAdd,
+        isEnv, hasSmtpEnv, load, saveGeneral, saveDeploy, deployNow, saveEmail, saveTranslation, saveAI, testAI, testEmail, saveProfile, changePassword, openAdd,
         chooseTranslationFile, onTranslationFile, addTranslation, downloadTemplate, deleteTranslation,
         uptime, userSince, initials: HP.initials, formatDateTime: HP.formatDateTime, formatBytes: HP.formatBytes, t
       };
@@ -381,6 +457,7 @@
         <PTabs v-else v-model:value="tab" class="settings-tabs">
           <PTabList>
             <PTab value="general"><i class="pi pi-sliders-h"></i> {{ t('settings.general', {}, 'General') }}</PTab>
+            <PTab value="deploy"><i class="pi pi-cloud-upload"></i> {{ t('settings.deploy', {}, 'Deploy') }}</PTab>
             <PTab value="email"><i class="pi pi-envelope"></i> {{ t('settings.email', {}, 'Email') }}</PTab>
             <PTab value="translation"><i class="pi pi-language"></i> {{ t('settings.translation', {}, 'Translation') }}</PTab>
             <PTab value="ai"><i class="pi pi-bolt"></i> {{ t('settings.ai', {}, 'AI') }}</PTab>
@@ -441,6 +518,82 @@
                   </template>
                 </PCard>
               </div>
+            </PTabPanel>
+
+            <PTabPanel value="deploy">
+              <div class="settings-grid">
+                <PCard class="panel-card">
+                  <template #content>
+                    <div class="panel-head">
+                      <div><h2>{{ t('settings.deploy_title', {}, 'Rsync deployment') }}</h2><p>{{ t('settings.deploy_hint', {}, 'Copy the built static site to a remote server over SSH after every successful build.') }}</p></div>
+                      <PTag :value="settings.deploy.configured ? t('settings.deploy_configured', {}, 'Configured') : t('settings.deploy_not_configured', {}, 'Not configured')" :severity="settings.deploy.configured ? 'success' : 'secondary'" rounded />
+                    </div>
+                    <PMessage v-if="!deployToolsReady" severity="warn" :closable="false">{{ t('settings.deploy_missing_tools', {}, 'rsync or ssh is missing from the panel container. Rebuild the image with rsync and openssh-client installed.') }}</PMessage>
+                    <div class="switch-row">
+                      <div><strong>{{ t('settings.deploy_enabled', {}, 'Deploy after a successful build') }}</strong><small>{{ t('settings.deploy_enabled_hint', {}, 'Runs rsync automatically whenever Hugo finishes a successful build.') }}</small></div>
+                      <PToggleSwitch v-model="deploy.enabled" />
+                    </div>
+                    <div class="field-grid">
+                      <label class="field"><span>{{ t('settings.deploy_host', {}, 'Remote host') }}</span><PInputText v-model="deploy.host" placeholder="example.com" /></label>
+                      <label class="field"><span>{{ t('settings.deploy_port', {}, 'SSH port') }}</span><PInputNumber v-model="deploy.port" :min="1" :max="65535" class="w-full" /></label>
+                    </div>
+                    <div class="field-grid">
+                      <label class="field"><span>{{ t('settings.deploy_user', {}, 'SSH user') }}</span><PInputText v-model="deploy.user" placeholder="deploy" autocomplete="off" /></label>
+                      <label class="field"><span>{{ t('settings.deploy_path', {}, 'Remote directory') }}</span><PInputText v-model="deploy.path" class="mono-input" placeholder="/var/www/example.com/" /><small class="field-hint">{{ t('settings.deploy_path_hint', {}, 'Absolute path on the server, for example /var/www/example.com/.') }}</small></label>
+                    </div>
+                    <div class="field-grid">
+                      <label class="field"><span>{{ t('settings.deploy_source', {}, 'Local source directory') }}</span><PInputText v-model="deploy.source" class="mono-input" placeholder="public" /><small class="field-hint">{{ t('settings.deploy_source_hint', {}, 'Relative to the Hugo site directory. Defaults to public.') }}</small></label>
+                      <label class="field"><span>{{ t('settings.deploy_rsync_path', {}, 'Remote rsync binary') }}</span><PInputText v-model="deploy.rsync_path" class="mono-input" placeholder="/usr/bin/rsync" /><small class="field-hint">{{ t('settings.deploy_rsync_path_hint', {}, 'Optional, for example /usr/bin/rsync. Leave blank to use the server default.') }}</small></label>
+                    </div>
+                    <div class="switch-row">
+                      <div><strong>{{ t('settings.deploy_delete', {}, 'Delete removed files on the server') }}</strong><small>{{ t('settings.deploy_delete_hint', {}, 'Passes --delete to rsync so the remote matches the local build exactly.') }}</small></div>
+                      <PToggleSwitch v-model="deploy.delete" />
+                    </div>
+                    <div class="button-row">
+                      <PButton :label="t('common.save_changes', {}, 'Save changes')" icon="pi pi-check" :loading="savingDeploy" @click="saveDeploy" class="btn-primary" />
+                      <PButton :label="t('settings.deploy_test', {}, 'Deploy now')" icon="pi pi-cloud-upload" :loading="deploying" outlined @click="deployNow" />
+                    </div>
+                  </template>
+                </PCard>
+                <PCard class="panel-card">
+                  <template #content>
+                    <div class="panel-head"><div><h2>{{ t('settings.deploy_security', {}, 'SSH security') }}</h2><p>{{ t('settings.deploy_security_hint', {}, 'Identity and host-key verification for the encrypted rsync transport.') }}</p></div></div>
+                    <div class="switch-row">
+                      <div><strong>{{ t('settings.deploy_strict_host_key', {}, 'Verify the server host key') }}</strong><small>{{ t('settings.deploy_strict_host_key_hint', {}, 'Requires a matching known_hosts entry. Disable only if you understand the risk.') }}</small></div>
+                      <PToggleSwitch v-model="deploy.strict_host_key" />
+                    </div>
+                    <label class="field">
+                      <span>{{ t('settings.deploy_ssh_key', {}, 'SSH private key') }}</span>
+                      <PTextarea v-model="deploy.ssh_key" rows="5" class="mono-input" :placeholder="settings.deploy.ssh_key_set ? t('settings.password_keep', {}, 'Saved — leave blank to keep') : '-----BEGIN OPENSSH PRIVATE KEY-----'" />
+                      <small class="field-hint">{{ t('settings.deploy_ssh_key_hint', {}, 'Stored on the server and never returned by the API. Leave blank to use the default SSH identity.') }}</small>
+                    </label>
+                    <div v-if="settings.deploy.ssh_key_set" class="check-row"><PCheckbox v-model="deploy.clear_ssh_key" binary /><span>{{ t('settings.deploy_clear_ssh_key', {}, 'Remove the saved private key') }}</span></div>
+                    <label class="field">
+                      <span>{{ t('settings.deploy_known_hosts', {}, 'Known hosts') }}</span>
+                      <PTextarea v-model="deploy.known_hosts" rows="4" class="mono-input" :placeholder="settings.deploy.known_hosts_set ? t('settings.password_keep', {}, 'Saved — leave blank to keep') : 'example.com ssh-ed25519 AAAA...'" />
+                      <small class="field-hint">{{ t('settings.deploy_known_hosts_hint', {}, 'Required when host verification is on. Paste the output of ssh-keyscan -p <port> <host>.') }}</small>
+                    </label>
+                    <div v-if="settings.deploy.known_hosts_set" class="check-row"><PCheckbox v-model="deploy.clear_known_hosts" binary /><span>{{ t('settings.deploy_clear_known_hosts', {}, 'Remove the saved known_hosts') }}</span></div>
+                  </template>
+                </PCard>
+              </div>
+
+              <PCard class="panel-card">
+                <template #content>
+                  <div class="panel-head">
+                    <div><h2>{{ t('settings.deploy_last', {}, 'Last deployment') }}</h2><p>{{ t('settings.deploy_output', {}, 'Deployment output') }}</p></div>
+                    <StatusTag v-if="deployResult" :status="deployStatus" />
+                  </div>
+                  <div v-if="deployResult" class="build-facts">
+                    <div><span>{{ t('build.command', {}, 'Command') }}</span><code>{{ deployResult.command }}</code></div>
+                    <div><span>{{ t('build.started', {}, 'Started') }}</span><strong>{{ formatDateTime(deployResult.started_at) }}</strong></div>
+                    <div><span>{{ t('build.finished', {}, 'Finished') }}</span><strong>{{ formatDateTime(deployResult.finished_at) }}</strong></div>
+                    <div><span>{{ t('build.duration_label', {}, 'Duration') }}</span><strong>{{ deployDuration }}</strong></div>
+                  </div>
+                  <pre v-if="deployResult" class="console-output">{{ deployResult.output || t('settings.deploy_no_output', {}, 'No deployment output.') }}</pre>
+                  <div v-else class="empty-inline"><i class="pi pi-cloud-upload"></i><span>{{ t('settings.deploy_never', {}, 'No deployments yet') }}</span></div>
+                </template>
+              </PCard>
             </PTabPanel>
 
             <PTabPanel value="email">
