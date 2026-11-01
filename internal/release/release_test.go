@@ -9,6 +9,7 @@ import (
 func TestNormalize(t *testing.T) {
 	cases := map[string]string{
 		"v0.0.5":        "0.0.5",
+		"V0.0.5":        "0.0.5",
 		"0.0.10":        "0.0.10",
 		"release-1.2.3": "1.2.3",
 	}
@@ -36,10 +37,7 @@ func TestIsNewer(t *testing.T) {
 }
 
 func TestLatestVersion(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"tag_name":"v0.0.6"}`))
-	}))
+	srv := releaseSite("V0.0.6")
 	defer srv.Close()
 	t.Setenv("PANEL_LATEST_URL", srv.URL)
 
@@ -53,6 +51,19 @@ func TestLatestVersion(t *testing.T) {
 	if got := svc.Latest(t.Context()); got != "0.0.6" {
 		t.Fatalf("cached Latest() = %q, want 0.0.6", got)
 	}
+}
+
+// releaseSite imitates the public GitHub releases page: /latest redirects to
+// the tag page, and the tag page itself is plain HTML.
+func releaseSite(tag string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.Redirect(w, r, releaseTagPath+tag, http.StatusFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte("<html><body>release " + tag + "</body></html>"))
+	}))
 }
 
 func TestLatestVersionUnavailable(t *testing.T) {
@@ -71,9 +82,10 @@ func TestLatestVersionDisabled(t *testing.T) {
 	}
 }
 
-func TestLatestVersionRejectsBadPayload(t *testing.T) {
+func TestLatestVersionWithoutReleaseTag(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"tag_name":"not-a-version"}`))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte("<html><body>No releases published</body></html>"))
 	}))
 	defer srv.Close()
 	t.Setenv("PANEL_LATEST_URL", srv.URL)

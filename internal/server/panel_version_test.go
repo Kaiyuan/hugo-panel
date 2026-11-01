@@ -10,8 +10,12 @@ func TestPanelVersionEndpoint(t *testing.T) {
 	app, _ := setupApp(t)
 
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"tag_name":"v0.0.6"}`))
+		if r.URL.Path == "/" {
+			http.Redirect(w, r, "/releases/tag/V0.0.6", http.StatusFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write([]byte("<html><body>latest release</body></html>"))
 	}))
 	defer upstream.Close()
 	t.Setenv("PANEL_LATEST_URL", upstream.URL)

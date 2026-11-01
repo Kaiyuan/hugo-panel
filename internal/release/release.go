@@ -3,8 +3,6 @@ package release
 
 import (
 	"context"
-	"encoding/json"
-	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -15,19 +13,22 @@ import (
 )
 
 const (
-	// DefaultLatestURL is the GitHub API endpoint used to look up the newest
-	// Hugo Panel release.
-	DefaultLatestURL = "https://api.github.com/repos/Kaiyuan/hugo-panel/releases/latest"
+	// DefaultLatestURL is the public releases page. GitHub redirects it to the
+	// newest tag, so the check does not need the GitHub API.
+	DefaultLatestURL = "https://github.com/Kaiyuan/hugo-panel/releases/latest"
 
 	// PageURL is the human-readable releases page.
-	PageURL = "https://github.com/Kaiyuan/hugo-panel/releases/latest"
+	PageURL = DefaultLatestURL
+
+	// releaseTagPath is the path segment GitHub uses for a release tag page.
+	releaseTagPath = "/releases/tag/"
 
 	cacheTTL       = 6 * time.Hour
 	failureTTL     = 15 * time.Minute
 	requestTimeout = 5 * time.Second
 )
 
-var versionRe = regexp.MustCompile(`\bv?(\d+)\.(\d+)\.(\d+)`)
+var versionRe = regexp.MustCompile(`(?i)\bv?(\d+)\.(\d+)\.(\d+)`)
 
 // Checker looks up the latest release and caches the answer so the API can be
 // called on every page load without hitting GitHub each time.
@@ -83,7 +84,7 @@ func fetchLatest(ctx context.Context) (string, time.Duration) {
 	if err != nil {
 		return "", failureTTL
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("Accept", "text/html")
 	req.Header.Set("User-Agent", "HugoPanel")
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -93,24 +94,37 @@ func fetchLatest(ctx context.Context) (string, time.Duration) {
 	if res.StatusCode != http.StatusOK {
 		return "", failureTTL
 	}
-	data, err := io.ReadAll(io.LimitReader(res.Body, 512*1024))
-	if err != nil {
+	tag := latestReleaseTag(res)
+	if tag == "" {
 		return "", failureTTL
 	}
-	var body struct {
-		TagName string `json:"tag_name"`
-	}
-	if err := json.Unmarshal(data, &body); err != nil {
-		return "", failureTTL
-	}
-	version, ok := Normalize(body.TagName)
+	version, ok := Normalize(tag)
 	if !ok {
 		return "", failureTTL
 	}
 	return version, cacheTTL
 }
 
-// Normalize extracts "x.y.z" from a tag or version string such as "v0.0.5".
+// latestReleaseTag extracts the tag from the final URL GitHub redirects to,
+// for example https://github.com/owner/repo/releases/tag/V0.0.5.
+func latestReleaseTag(res *http.Response) string {
+	if res == nil || res.Request == nil || res.Request.URL == nil {
+		return ""
+	}
+	path := res.Request.URL.Path
+	idx := strings.LastIndex(path, releaseTagPath)
+	if idx < 0 {
+		return ""
+	}
+	tag := path[idx+len(releaseTagPath):]
+	if end := strings.IndexAny(tag, "/?#"); end >= 0 {
+		tag = tag[:end]
+	}
+	return tag
+}
+
+// Normalize extracts "x.y.z" from a tag or version string such as "v0.0.5" or
+// "V0.0.5".
 func Normalize(value string) (string, bool) {
 	m := versionRe.FindStringSubmatch(value)
 	if m == nil {
