@@ -310,7 +310,7 @@
             args:
                 COMMIT: ${COMMIT:-none}
                 BUILD_TIME: ${BUILD_TIME:-unknown}
-        image: hugo-panel:local
+        image: kaiyuan/hugo-panel:latest
         container_name: hugo-panel
         restart: unless-stopped
         ports:
