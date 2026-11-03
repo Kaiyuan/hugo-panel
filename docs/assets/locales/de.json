@@ -7,6 +7,8 @@
   "brand.tagline": "Selbst gehostetes Hugo-Admin",
   "nav.features": "Funktionen",
   "nav.screens": "Ansichten",
+  "nav.docs": "Doku",
+  "nav.home": "Start",
   "nav.deploy": "Deploy",
   "nav.theme": "Helles / dunkles Theme wechseln",
   "nav.lang": "Sprache ändern",
@@ -55,5 +57,6 @@
   "note.perm.body": "Läuft als UID/GID <code>1000</code> und ändert beim Start den Besitzer der eingebundenen Volumes (chown). Deaktiviere das, wenn ein externes Tool die Berechtigungen verwaltet.",
   "closing.title": "Starten, dann Konfigurationsdateien vergessen.",
   "closing.body": "Quellcode, Dokumentation und Issue-Tracker sind auf GitHub. Das Projekt ist Open Source unter der MIT-Lizenz.",
-  "closing.repo": "Repository ansehen"
+  "closing.repo": "Repository ansehen",
+  "closing.guide": "Dokumentation"
 }

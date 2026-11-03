@@ -7,6 +7,8 @@
   "brand.tagline": "Admin Hugo auto-hébergée",
   "nav.features": "Fonctions",
   "nav.screens": "Interface",
+  "nav.docs": "Docs",
+  "nav.home": "Accueil",
   "nav.deploy": "Déploiement",
   "nav.theme": "Basculer entre thème clair et sombre",
   "nav.lang": "Changer de langue",
@@ -55,5 +57,6 @@
   "note.perm.body": "S'exécute avec l'UID/GID <code>1000</code> et applique un chown aux volumes au démarrage. Désactivez-le si un outil externe gère les permissions.",
   "closing.title": "Déployez-le, puis oubliez les fichiers de configuration.",
   "closing.body": "Le code, la documentation et le suivi des problèmes sont sur GitHub. Le projet est open source sous licence MIT.",
-  "closing.repo": "Voir le dépôt"
+  "closing.repo": "Voir le dépôt",
+  "closing.guide": "Documentation"
 }

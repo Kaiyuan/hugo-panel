@@ -63,7 +63,7 @@ COPY --from=build /out/hugo-panel /usr/local/bin/hugo-panel
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 0755 /usr/local/bin/entrypoint.sh
 
-ENV PORT=8080 \
+ENV PORT=55530 \
     DATA_DIR=/app/hugo-panel/data \
     HUGO_DIR=/app/hugo \
     HUGO_BINARY=/usr/local/bin/hugo \
@@ -74,10 +74,10 @@ ENV PORT=8080 \
     COOKIE_SECURE=auto
 
 VOLUME ["/app/hugo-panel/data", "/app/hugo"]
-EXPOSE 8080
+EXPOSE 55530
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD wget -qO- http://127.0.0.1:8080/api/health >/dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1:55530/api/health >/dev/null || exit 1
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["hugo-panel"]

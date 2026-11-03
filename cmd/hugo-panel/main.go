@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -30,6 +31,12 @@ var (
 )
 
 func main() {
+	showVersion := flag.Bool("version", false, "print version information and exit")
+	flag.Parse()
+	if *showVersion {
+		fmt.Printf("hugo-panel %s (commit %s, built %s)\n", version, commit, buildTime)
+		return
+	}
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, "hugo-panel:", err)
 		os.Exit(1)

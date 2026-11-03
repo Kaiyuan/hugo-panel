@@ -15,6 +15,8 @@
 
 介绍页（纯静态，由 GitHub Pages 托管）：<https://kaiyuan.github.io/hugo-panel/>
 
+完整安装与使用文档：<https://kaiyuan.github.io/hugo-panel/guide.html>
+
 ## 功能
 
 - **首次启动向导**：创建管理员账户，密码使用 bcrypt 存储。
@@ -32,6 +34,39 @@
 - **PWA**：可安装到桌面/手机，包含离线应用壳与移动端适配。除 `localhost` 外，安装与 Service Worker 需要 HTTPS。
 - **安全**：SQLite 持久化、HttpOnly 会话、CSRF 防护、登录/找回密码限流、同源校验、CSP、安全响应头、路径穿越防护、配置自动备份。
 
+## 单文件安装（Linux / macOS）
+
+每个 `v*` 标签都会发布 Linux 与 macOS 的 amd64 / arm64 压缩包。安装脚本会自动识别系统架构，下载对应版本并校验 SHA-256：
+
+```bash
+curl -fsSL https://github.com/Kaiyuan/hugo-panel/releases/latest/download/install.sh | sh
+```
+
+默认安装到 `~/.local/bin`，使用 root 运行时安装到 `/usr/local/bin`。可通过环境变量指定版本或安装目录：
+
+```bash
+curl -fsSL https://github.com/Kaiyuan/hugo-panel/releases/latest/download/install.sh \
+  | HP_VERSION=v0.0.6 HP_INSTALL_DIR="$HOME/bin" sh
+```
+
+也可以从 [Releases](https://github.com/Kaiyuan/hugo-panel/releases) 手动下载：
+
+| 系统 | 架构 | 文件 |
+| --- | --- | --- |
+| Linux | amd64 | `hugo-panel_linux_amd64.tar.gz` |
+| Linux | arm64 | `hugo-panel_linux_arm64.tar.gz` |
+| macOS | amd64（Intel） | `hugo-panel_darwin_amd64.tar.gz` |
+| macOS | arm64（Apple Silicon） | `hugo-panel_darwin_arm64.tar.gz` |
+
+运行前请安装 [Hugo Extended](https://gohugo.io/installation/) 0.120 或更高版本，并确认 `hugo version` 可用。然后启动面板：
+
+```bash
+hugo-panel
+# 打开 http://localhost:55530
+```
+
+面板默认监听 `55530`，数据保存在当前目录的 `./data`，Hugo 站点目录默认为 `./hugo`。可通过 `PORT`、`DATA_DIR` 和 `HUGO_DIR` 修改。
+
 ## Docker 部署（推荐）
 
 镜像地址：`https://hub.docker.com/r/kaiyuan/hugo-panel`
@@ -43,7 +78,7 @@ docker run -d \
   --name hugo-panel \
   --restart unless-stopped \
   --network bridge \
-  -p 8080:8080 \
+  -p 55530:55530 \
   -v /srv/hugo-panel/data:/app/hugo-panel/data \
   -v /srv/my-hugo-site:/app/hugo \
   -e PUBLIC_URL=https://panel.example.com \
@@ -51,7 +86,7 @@ docker run -d \
   kaiyuan/hugo-panel:latest
 ```
 
-然后打开 `http://服务器地址:8080`，按向导创建管理员。
+然后打开 `http://服务器地址:55530`，按向导创建管理员。
 
 ### Docker Compose
 
@@ -67,7 +102,7 @@ services:
     restart: unless-stopped
     network_mode: bridge
     ports:
-      - "8080:8080"
+      - "55530:55530"
     environment:
       TZ: Asia/Shanghai
       HUGO_DIR: /app/hugo
@@ -101,7 +136,7 @@ cd hugo-panel
 docker compose up -d --build
 ```
 
-然后打开 `http://服务器地址:8080`，按向导创建管理员。
+然后打开 `http://服务器地址:55530`，按向导创建管理员。
 
 SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首次启动后到设置页配置。
 
@@ -127,7 +162,7 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `PORT` | `8080` | 监听端口 |
+| `PORT` | `55530` | 监听端口 |
 | `DATA_DIR` | `./data`（镜像内 `/app/hugo-panel/data`） | 数据目录 |
 | `HUGO_DIR` | `./hugo`（镜像内 `/app/hugo`） | 首次启动写入设置的 Hugo 站点目录 |
 | `HUGO_BINARY` | `hugo` | 首次启动写入设置的 Hugo 可执行文件 |

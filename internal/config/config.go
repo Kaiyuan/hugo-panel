@@ -38,7 +38,7 @@ type SMTPEnv struct {
 // are resolved against the current working directory, so running the binary in
 // /app/hugo-panel naturally uses /app/hugo-panel/data.
 func Load() (*Config, error) {
-	port := env("PORT", "8080")
+	port := env("PORT", "55530")
 	if _, err := strconv.Atoi(port); err != nil {
 		return nil, fmt.Errorf("invalid PORT %q", port)
 	}

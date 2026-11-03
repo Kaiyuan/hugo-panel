@@ -7,6 +7,8 @@
   "brand.tagline": "セルフホスト Hugo 管理",
   "nav.features": "機能",
   "nav.screens": "画面",
+  "nav.docs": "ドキュメント",
+  "nav.home": "ホーム",
   "nav.deploy": "導入",
   "nav.theme": "ライト / ダークテーマを切り替え",
   "nav.lang": "言語を切り替え",
@@ -55,5 +57,6 @@
   "note.perm.body": "UID/GID <code>1000</code> で動作し、起動時にマウントしたボリュームを chown します。外部ツールが権限を管理する場合は無効にできます。",
   "closing.title": "動かしたら、設定ファイルのことは忘れて。",
   "closing.body": "ソース、ドキュメント、issue は GitHub にあります。MIT ライセンスのオープンソースです。",
-  "closing.repo": "リポジトリを見る"
+  "closing.repo": "リポジトリを見る",
+  "closing.guide": "使い方"
 }

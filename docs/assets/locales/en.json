@@ -7,6 +7,8 @@
   "brand.tagline": "Self-hosted Hugo admin",
   "nav.features": "Features",
   "nav.screens": "Screens",
+  "nav.docs": "Docs",
+  "nav.home": "Home",
   "nav.deploy": "Deploy",
   "nav.theme": "Switch light / dark theme",
   "nav.lang": "Change language",
@@ -55,5 +57,6 @@
   "note.perm.body": "Runs as UID/GID <code>1000</code> and chowns the mounted volumes on startup. Disable that when an external tool manages permissions.",
   "closing.title": "Deploy it, then forget about config files.",
   "closing.body": "Source, docs and issue tracker live on GitHub. The project is open source under the MIT license.",
-  "closing.repo": "View repository"
+  "closing.repo": "View repository",
+  "closing.guide": "Documentation"
 }

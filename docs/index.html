@@ -91,6 +91,7 @@
       <nav class="nav-links" aria-label="Hugo Panel">
         <a href="#features" data-i18n="nav.features">功能</a>
         <a href="#showcase" data-i18n="nav.screens">界面</a>
+        <a href="guide.html" data-i18n="nav.docs">文档</a>
         <a href="#start" data-i18n="nav.deploy">部署</a>
       </nav>
 
@@ -279,6 +280,15 @@
         </header>
 
         <div class="code-grid">
+          <div class="code-card code-card-wide">
+            <div class="code-head">
+              <span>binary install</span>
+              <button class="copy-btn" type="button" data-copy="snippet-binary" data-i18n="start.copy">复制</button>
+            </div>
+<pre id="snippet-binary"><code>curl -fsSL https://github.com/Kaiyuan/hugo-panel/releases/latest/download/install.sh | sh</code></pre>
+            <p class="code-note">Linux / macOS · amd64 / arm64 · SHA-256</p>
+          </div>
+
           <div class="code-card">
             <div class="code-head">
               <span>docker run</span>
@@ -288,7 +298,7 @@
   --name hugo-panel \
   --restart unless-stopped \
   --network bridge \
-  -p 8080:8080 \
+  -p 55530:55530 \
   -v /srv/hugo-panel/data:/app/hugo-panel/data \
   -v /srv/my-hugo-site:/app/hugo \
   -e PUBLIC_URL=https://panel.example.com \
@@ -314,13 +324,13 @@
         container_name: hugo-panel
         restart: unless-stopped
         ports:
-            - "8080:8080"
+            - "55530:55530"
         network_mode: bridge
         environment:
             TZ: Asia/Shanghai
             HUGO_DIR: /app/hugo
             # Public URL of this panel, used for password-reset links.
-            PUBLIC_URL: http://localhost:8080
+            PUBLIC_URL: http://localhost:55530
         volumes:
             # Host paths are configured in .env (defaults keep them next to this file).
             - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
@@ -362,6 +372,7 @@
               <span data-i18n="closing.repo">查看仓库</span>
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
             </a>
+            <a class="btn btn-ghost" href="guide.html" data-i18n="closing.guide">使用文档</a>
             <a class="btn btn-ghost" href="https://hub.docker.com/r/kaiyuan/hugo-panel" target="_blank" rel="noopener">Docker Hub</a>
           </div>
         </div>
@@ -383,6 +394,7 @@
         <span>Hugo Panel · MIT License</span>
       </div>
       <nav class="footer-links" aria-label="Hugo Panel">
+        <a href="guide.html" data-i18n="nav.docs">文档</a>
         <a href="https://github.com/Kaiyuan/hugo-panel" target="_blank" rel="noopener">GitHub</a>
         <a href="https://github.com/Kaiyuan/hugo-panel/blob/main/LICENSE" target="_blank" rel="noopener">License</a>
         <a href="https://hub.docker.com/r/kaiyuan/hugo-panel" target="_blank" rel="noopener">Docker Hub</a>

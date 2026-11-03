@@ -7,6 +7,8 @@
   "brand.tagline": "自托管 Hugo 后台",
   "nav.features": "功能",
   "nav.screens": "界面",
+  "nav.docs": "文档",
+  "nav.home": "首页",
   "nav.deploy": "部署",
   "nav.theme": "切换亮色 / 暗色主题",
   "nav.lang": "切换语言",
@@ -55,5 +57,6 @@
   "note.perm.body": "默认以 UID/GID <code>1000</code> 运行，启动时会把挂载目录 chown 给该用户；由外部工具管理权限时可关闭。",
   "closing.title": "跑起来，然后忘掉配置文件。",
   "closing.body": "源码、文档和问题反馈都在 GitHub。项目以 MIT 许可证开源。",
-  "closing.repo": "查看仓库"
+  "closing.repo": "查看仓库",
+  "closing.guide": "使用文档"
 }

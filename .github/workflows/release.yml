@@ -1,21 +1,91 @@
-name: Release container
+name: Release
 
-# Only release tags build the Docker image. Push a tag like `v1.2.3` (or
-# publish a GitHub Release, which creates that tag) to trigger it. There is no
-# manual dispatch and no branch trigger on purpose: normal pushes and pull
-# requests must not build images.
+# Release tags build the Docker images and the Linux/macOS binaries, then
+# publish every artifact on the GitHub Release. Push a tag like `v1.2.3`
+# (or publish a GitHub Release, which creates that tag) to trigger it.
 on:
   push:
     tags:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   IMAGE: kaiyuan/hugo-panel
 
 jobs:
+  binaries:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            cc: gcc
+            tags: netgo,osusergo
+            ldflags: -s -w -linkmode external -extldflags=-static
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            cc: aarch64-linux-gnu-gcc
+            tags: netgo,osusergo
+            ldflags: -s -w -linkmode external -extldflags=-static
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            cc: clang
+            tags: netgo,osusergo
+            ldflags: -s -w
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            cc: "clang -arch x86_64"
+            tags: netgo,osusergo
+            ldflags: -s -w
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install Linux arm64 cross compiler
+        if: matrix.goos == 'linux' && matrix.goarch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu libc6-dev-arm64-cross
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: "1"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CC: ${{ matrix.cc }}
+        run: |
+          version="${GITHUB_REF_NAME#[vV]}"
+          build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          mkdir -p package dist
+          go build -trimpath -tags "${{ matrix.tags }}" \
+            -ldflags "${{ matrix.ldflags }} -X main.version=${version} -X main.commit=${GITHUB_SHA} -X main.buildTime=${build_time}" \
+            -o package/hugo-panel ./cmd/hugo-panel
+          cp LICENSE package/
+          tar -czf "dist/hugo-panel_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz" \
+            -C package hugo-panel LICENSE
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hugo-panel_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: dist/hugo-panel_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz
+          if-no-files-found: error
+
   docker:
     name: Build and push multi-arch images
     runs-on: ubuntu-latest
@@ -63,3 +133,33 @@ jobs:
             BUILD_TIME=${{ steps.build_time.outputs.value }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  release:
+    name: Publish release assets
+    needs: [binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum *.tar.gz > checksums.txt
+          cat checksums.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.tar.gz
+            dist/checksums.txt
+            install.sh
+          generate_release_notes: true
+          fail_on_unmatched_files: true

@@ -1,6 +1,8 @@
 /bin/
 /data/
 /hugo/
+/dist/
+/package/
 *.db
 *.db-shm
 *.db-wal

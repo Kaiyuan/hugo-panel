@@ -13,6 +13,12 @@
   var metaDescription = document.querySelector('meta[name="description"]');
   var dict = {};
 
+  var PAGE = root.getAttribute('data-i18n-page') || '';
+  var PAGE_FALLBACK = root.getAttribute('data-i18n-fallback') || 'en';
+  var PAGE_LANGS = (root.getAttribute('data-i18n-page-langs') || '').split(',').filter(Boolean);
+  var titleKey = root.getAttribute('data-title-key') || 'page.title';
+  var descriptionKey = root.getAttribute('data-description-key') || 'page.description';
+
   var defaultTitle = document.title;
   var defaultDescription = metaDescription ? metaDescription.getAttribute('content') : '';
 
@@ -96,10 +102,32 @@
       el.setAttribute('aria-label', value != null ? value : el.getAttribute('data-i18n-aria-default'));
     });
 
-    document.title = dict['page.title'] || defaultTitle;
-    if (metaDescription) metaDescription.setAttribute('content', dict['page.description'] || defaultDescription);
+    document.title = dict[titleKey] || defaultTitle;
+    if (metaDescription) metaDescription.setAttribute('content', dict[descriptionKey] || defaultDescription);
 
     root.classList.remove('i18n-pending');
+  }
+
+  function fetchJSON(url) {
+    if (!window.fetch) return Promise.resolve(null);
+    return fetch(url, { cache: 'no-cache' })
+      .then(function (response) {
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        return response.json();
+      })
+      .catch(function () { return null; });
+  }
+
+  function merge(base, extra) {
+    var out = {};
+    var key;
+    for (key in base) {
+      if (Object.prototype.hasOwnProperty.call(base, key)) out[key] = base[key];
+    }
+    for (key in extra) {
+      if (Object.prototype.hasOwnProperty.call(extra, key)) out[key] = extra[key];
+    }
+    return out;
   }
 
   function loadLocale(lang) {
@@ -108,20 +136,34 @@
       applyLocale(DEFAULT_LANG, null);
       return Promise.resolve(DEFAULT_LANG);
     }
-    return fetch('assets/locales/' + lang + '.json', { cache: 'no-cache' })
-      .then(function (response) {
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        return response.json();
-      })
-      .then(function (data) {
-        applyLocale(lang, data);
-        return lang;
-      })
-      .catch(function () {
-        // Missing or broken dictionary: fall back to the markup's own language.
-        applyLocale(DEFAULT_LANG, null);
-        return DEFAULT_LANG;
-      });
+    var baseURL = 'assets/locales/' + lang + '.json';
+    var pageLang = PAGE_LANGS.length && PAGE_LANGS.indexOf(lang) < 0
+      ? (lang === 'zh-TW' ? 'zh-CN' : PAGE_FALLBACK)
+      : lang;
+    var pageURL = PAGE ? 'assets/locales/' + PAGE + '-' + pageLang + '.json' : '';
+    return Promise.all([
+      fetchJSON(baseURL),
+      pageURL ? fetchJSON(pageURL) : Promise.resolve({})
+    ]).then(function (results) {
+      var base = results[0];
+      var page = results[1];
+      if (!base) throw new Error('missing locale');
+      if (PAGE && !page) {
+        // A page dictionary is optional. Keep the translated chrome and use
+        // the fallback language rather than raw markup.
+        var fallbackLang = lang === 'zh-TW' ? 'zh-CN' : PAGE_FALLBACK;
+        return fetchJSON('assets/locales/' + PAGE + '-' + fallbackLang + '.json').then(function (fallback) {
+          applyLocale(lang, merge(base, fallback || {}));
+          return lang;
+        });
+      }
+      applyLocale(lang, merge(base, page || {}));
+      return lang;
+    }).catch(function () {
+      // Missing or broken dictionary: fall back to the markup's own language.
+      applyLocale(DEFAULT_LANG, null);
+      return DEFAULT_LANG;
+    });
   }
 
   function setLanguage(lang, persist) {

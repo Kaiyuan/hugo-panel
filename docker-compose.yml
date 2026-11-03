@@ -24,13 +24,13 @@ services:
     #  - 8.8.4.4
     #  - 114.114.115.115
     ports:
-      - "55530:8080"
+      - "55530:55530"
     network_mode: bridge
     environment:
       TZ: Asia/Shanghai
       HUGO_DIR: /app/hugo
       # Public URL of this panel, used for password-reset links.
-      PUBLIC_URL: http://localhost:8080
+      PUBLIC_URL: http://localhost:55530
       # Set to "true" when running behind an HTTPS reverse proxy.
       # COOKIE_SECURE: "auto"
       # The app chowns mounted Hugo files to UID 1000. Disable if you manage

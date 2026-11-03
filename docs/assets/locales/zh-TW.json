@@ -7,6 +7,8 @@
   "brand.tagline": "自架 Hugo 後台",
   "nav.features": "功能",
   "nav.screens": "介面",
+  "nav.docs": "說明文件",
+  "nav.home": "首頁",
   "nav.deploy": "部署",
   "nav.theme": "切換亮色 / 暗色主題",
   "nav.lang": "切換語言",
@@ -55,5 +57,6 @@
   "note.perm.body": "預設以 UID/GID <code>1000</code> 執行，啟動時會把掛載目錄 chown 給該使用者；由外部工具管理權限時可關閉。",
   "closing.title": "跑起來，然後忘掉設定檔。",
   "closing.body": "原始碼、文件與問題回報都在 GitHub。專案以 MIT 授權條款開源。",
-  "closing.repo": "查看儲存庫"
+  "closing.repo": "查看儲存庫",
+  "closing.guide": "使用說明"
 }

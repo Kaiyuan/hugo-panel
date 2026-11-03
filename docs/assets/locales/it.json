@@ -7,6 +7,8 @@
   "brand.tagline": "Admin Hugo self-hosted",
   "nav.features": "Funzioni",
   "nav.screens": "Interfaccia",
+  "nav.docs": "Docs",
+  "nav.home": "Home",
   "nav.deploy": "Deploy",
   "nav.theme": "Cambia tema chiaro / scuro",
   "nav.lang": "Cambia lingua",
@@ -55,5 +57,6 @@
   "note.perm.body": "Gira come UID/GID <code>1000</code> e applica chown ai volumi all'avvio. Disattivalo se i permessi sono gestiti da uno strumento esterno.",
   "closing.title": "Avvialo, poi dimentica i file di configurazione.",
   "closing.body": "Codice, documentazione e issue sono su GitHub. Il progetto è open source con licenza MIT.",
-  "closing.repo": "Vedi il repository"
+  "closing.repo": "Vedi il repository",
+  "closing.guide": "Documentazione"
 }
