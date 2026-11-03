@@ -1,5 +1,6 @@
 # Hugo Panel
 
+![hugo panel](https://kaiyuan.github.io/hugo-panel/assets/images/hugo-panel-web.png)
 一个用 Go 编写的 Hugo 站点管理后台。内容、主题、模块、媒体和构建都在一个界面里完成，不需要手写配置文件。前端使用 Vue 3 + PrimeVue，以静态资源形式由 Go 直接提供。
 
 ![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
