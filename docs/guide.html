@@ -23,7 +23,7 @@
   <script>
     // Resolve the language before first paint: ?lang=… > saved choice > browser.
     (function () {
-      var SUPPORTED = ['zh-CN', 'zh-TW', 'en', 'fr', 'it', 'es', 'ja', 'ko', 'de'];
+      var SUPPORTED = ['zh-CN', 'zh-TW', 'en', 'de', 'fr', 'it', 'es', 'ja', 'ko'];
       var FALLBACK = 'en';
       var DEFAULT = 'zh-CN';
 
@@ -98,12 +98,12 @@
             <option value="zh-CN" lang="zh-CN">简体中文</option>
             <option value="zh-TW" lang="zh-TW">繁體中文</option>
             <option value="en" lang="en">English</option>
+            <option value="de" lang="de">Deutsch</option>
             <option value="fr" lang="fr">Français</option>
             <option value="it" lang="it">Italiano</option>
             <option value="es" lang="es">Español</option>
             <option value="ja" lang="ja">日本語</option>
             <option value="ko" lang="ko">한국어</option>
-            <option value="de" lang="de">Deutsch</option>
           </select>
         </label>
 
@@ -134,7 +134,7 @@
         <h1 data-i18n="guide.title">安装与使用指南</h1>
         <p class="lead" data-i18n="guide.lead">从下载到第一次发布：Hugo Panel 的安装、配置、日常使用与维护说明。</p>
         <div class="guide-meta">
-          <span data-i18n="guide.meta.version">适用于 0.0.5 及以上</span>
+          <span data-i18n="guide.meta.version">适用于 0.0.6 及以上</span>
           <span data-i18n="guide.meta.platform">Linux · macOS · Docker</span>
           <a class="guide-meta-link" href="https://github.com/Kaiyuan/hugo-panel/releases" target="_blank" rel="noopener" data-i18n="guide.meta.releases">下载最新版本</a>
         </div>

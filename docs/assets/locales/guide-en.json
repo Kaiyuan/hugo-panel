@@ -6,7 +6,7 @@
   "guide.eyebrow": "Documentation",
   "guide.title": "Installation and usage guide",
   "guide.lead": "From download to your first publish: how to install, configure, use and maintain Hugo Panel.",
-  "guide.meta.version": "For 0.0.5 and later",
+  "guide.meta.version": "For 0.0.6 and later",
   "guide.meta.platform": "Linux · macOS · Docker",
   "guide.meta.releases": "Download latest",
   "guide.toc": "Contents",

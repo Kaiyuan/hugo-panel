@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 BINARY := bin/hugo-panel
-VERSION ?= 0.0.5
+VERSION ?= 0.0.6
 COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo none)
 BUILD_TIME ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 

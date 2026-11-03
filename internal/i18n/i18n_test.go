@@ -28,7 +28,7 @@ func TestBuiltinLanguagesAreComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"en", "zh-CN", "zh-TW", "fr", "it", "es", "ja", "ko", "de"}
+	want := []string{"en", "de", "zh-CN", "zh-TW", "fr", "it", "es", "ja", "ko"}
 	if len(languages) != len(want) {
 		t.Fatalf("got %d languages: %#v", len(languages), languages)
 	}

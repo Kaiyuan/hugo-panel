@@ -6,7 +6,7 @@
   "guide.eyebrow": "文档",
   "guide.title": "安装与使用指南",
   "guide.lead": "从下载到第一次发布：Hugo Panel 的安装、配置、日常使用与维护说明。",
-  "guide.meta.version": "适用于 0.0.5 及以上",
+  "guide.meta.version": "适用于 0.0.6 及以上",
   "guide.meta.platform": "Linux · macOS · Docker",
   "guide.meta.releases": "下载最新版本",
   "guide.toc": "目录",
