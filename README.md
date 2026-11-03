@@ -365,3 +365,7 @@ web/locales             9 种内置语言
 [MIT](./LICENSE)
 
 前端第三方静态依赖及其许可证见 [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)。
+
+|给我补充 token||
+|------|------|
+|![WeiChat](https://kaiyuan.github.io/sponsor-page/simple/images/WeChanSQ.png)|![AliPay](https://kaiyuan.github.io/sponsor-page/simple/images/AliPayQR.png)|
