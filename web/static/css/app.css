@@ -1388,3 +1388,34 @@ html body .p-button:not(.p-button-icon-only):not(.p-button-sm) {
 
 .media-preview-dialog .p-dialog-footer,
 .media-picker .p-dialog-footer { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* ---------- iOS form controls ---------- */
+/* Safari on iOS zooms the whole page when a focused editable control has a
+   computed font size below 16px. The Markdown textareas use a 14.5px mono
+   size on desktop and the other controls 15px, so raise every editable
+   control to 16px on iOS only; desktop typography stays untouched. The
+   highlight layer must match the textarea or the overlay drifts. */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select,
+  .p-inputtext,
+  .p-textarea,
+  .p-password-input,
+  .p-select-label,
+  .p-inputnumber-input,
+  .search-input,
+  .markdown-editor,
+  .live-block-editor,
+  .md-highlight { font-size: 16px; }
+
+  .public-toolbar .lang-select .p-select-label { font-size: 16px; }
+
+  /* Also stop the double-tap zoom when tapping an editor block or toolbar
+     button; pinch zoom and scrolling keep working. */
+  .markdown-toolbar,
+  .md-tool,
+  .live-block,
+  .markdown-editor,
+  .live-block-editor { touch-action: manipulation; }
+}
