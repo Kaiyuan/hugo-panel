@@ -8,4 +8,19 @@
     var lang = localStorage.getItem('hp_lang');
     if (lang) document.documentElement.lang = lang;
   } catch (e) {}
+
+  // Mobile devices must not zoom the panel. The viewport meta covers most
+  // browsers and touch-action covers Android; Safari ignores user-scalable=no,
+  // so block its pinch gesture and multi-touch moves explicitly.
+  if (navigator.maxTouchPoints > 0 || 'ontouchstart' in window) {
+    var blockZoom = function (event) {
+      if (event.cancelable !== false) event.preventDefault();
+    };
+    ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (name) {
+      document.addEventListener(name, blockZoom, { passive: false });
+    });
+    document.addEventListener('touchmove', function (event) {
+      if (event.touches && event.touches.length > 1 && event.cancelable !== false) event.preventDefault();
+    }, { passive: false });
+  }
 })();
