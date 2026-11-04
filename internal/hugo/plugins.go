@@ -65,14 +65,14 @@ func moduleImports(m map[string]any) []ModuleImport {
 }
 
 func (s *Site) PluginState(ctx context.Context) (PluginState, error) {
-	rel, _, m, exists, err := s.loadConfigMap()
+	doc, err := s.readConfigDocument()
 	if err != nil {
 		return PluginState{}, err
 	}
 	state := PluginState{
-		Modules:     moduleImports(m),
-		ConfigPath:  filepath.ToSlash(rel),
-		Initialized: exists,
+		Modules:     moduleImports(doc.merged),
+		ConfigPath:  filepath.ToSlash(doc.sources[doc.primary].rel),
+		Initialized: doc.exists,
 	}
 	if _, err := os.Stat(s.Binary); err == nil {
 		state.HugoAvailable = true
@@ -111,13 +111,15 @@ func (s *Site) AddPlugin(ctx context.Context, path, version string) (PluginResul
 	if version != "" && !moduleVersionRe.MatchString(version) {
 		return PluginResult{}, errf("invalid_request", "Invalid module version")
 	}
-	rel, format, m, exists, err := s.loadConfigMap()
+	doc, err := s.readConfigDocument()
 	if err != nil {
 		return PluginResult{}, err
 	}
-	if !exists {
+	if !doc.exists {
 		return PluginResult{}, errf("not_initialized", "Hugo site is not initialized yet")
 	}
+	m := doc.merged
+	before := cloneConfigMap(m)
 	for _, mod := range moduleImports(m) {
 		if mod.Path == path {
 			return PluginResult{}, errf("plugin_exists", "This module is already installed")
@@ -131,7 +133,7 @@ func (s *Site) AddPlugin(ctx context.Context, path, version string) (PluginResul
 	imports = append(imports, map[string]any{"path": path})
 	mod["imports"] = imports
 	m["module"] = mod
-	if err := s.saveConfigMap(rel, format, m); err != nil {
+	if err := s.writeConfigDocument(doc, before); err != nil {
 		return PluginResult{}, err
 	}
 
@@ -165,13 +167,15 @@ func (s *Site) RemovePlugin(ctx context.Context, path string) (PluginResult, err
 	if path == "" {
 		return PluginResult{}, errf("invalid_request", "Module path is required")
 	}
-	rel, format, m, exists, err := s.loadConfigMap()
+	doc, err := s.readConfigDocument()
 	if err != nil {
 		return PluginResult{}, err
 	}
-	if !exists {
+	if !doc.exists {
 		return PluginResult{}, errf("not_initialized", "Hugo site is not initialized yet")
 	}
+	m := doc.merged
+	before := cloneConfigMap(m)
 	mod, _ := m["module"].(map[string]any)
 	if mod == nil {
 		return PluginResult{}, errf("not_found", "Module is not installed")
@@ -198,7 +202,7 @@ func (s *Site) RemovePlugin(ctx context.Context, path string) (PluginResult, err
 	}
 	mod["imports"] = kept
 	m["module"] = mod
-	if err := s.saveConfigMap(rel, format, m); err != nil {
+	if err := s.writeConfigDocument(doc, before); err != nil {
 		return PluginResult{}, err
 	}
 	res := runCommand(ctx, s.Dir, 5*time.Minute, moduleEnv(), s.Binary, "mod", "tidy")
@@ -227,18 +231,6 @@ func (s *Site) TidyPlugins(ctx context.Context) (PluginResult, error) {
 		return PluginResult{}, err
 	}
 	return PluginResult{PluginState: state, Output: res.Output, Warning: warning}, nil
-}
-
-func (s *Site) saveConfigMap(rel, format string, m map[string]any) error {
-	data, err := encodeConfig(m, format)
-	if err != nil {
-		return err
-	}
-	full := filepath.Join(s.Dir, rel)
-	if old, err := os.ReadFile(full); err == nil {
-		s.backup(rel, old)
-	}
-	return atomicWrite(full, data, 0o644)
 }
 
 func validModulePath(path string) bool {

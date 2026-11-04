@@ -10,7 +10,11 @@
       const value = obj[key];
       const path = prefix ? prefix + '.' + key : key;
       if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-        flattenParams(value, path, out);
+        if (Object.keys(value).length === 0) {
+          out.push({ key: path, type: 'json', value: '{}' });
+        } else {
+          flattenParams(value, path, out);
+        }
       } else {
         let type = 'string';
         let display = value;
@@ -65,6 +69,7 @@
       const saving = ref(false);
       const error = ref('');
       const paramsRows = ref([]);
+      const extraRows = ref([]);
       const menuGroups = ref([]);
       const initVisible = ref(false);
       const initLoading = ref(false);
@@ -99,6 +104,8 @@
           form.theme = config.theme || '';
           paramsRows.value = [];
           flattenParams(config.params || {}, '', paramsRows.value);
+          extraRows.value = [];
+          flattenParams(config.extra || {}, '', extraRows.value);
           menuGroups.value = Object.keys(config.menus || {}).map((name) => ({
             name,
             entries: (config.menus[name] || []).map((e) => ({
@@ -116,6 +123,7 @@
         saving.value = true;
         try {
           const params = paramsFromRows(paramsRows.value);
+          const extra = paramsFromRows(extraRows.value);
           const menus = {};
           for (const group of menuGroups.value) {
             const name = String(group.name || '').trim();
@@ -129,7 +137,7 @@
             method: 'PUT',
             body: {
               site_title: form.site_title, base_url: form.base_url, language_code: form.language_code,
-              default_content_language: form.default_content_language, theme: form.theme, params, menus
+              default_content_language: form.default_content_language, theme: form.theme, params, extra, menus
             }
           });
           cfg.value = updated;
@@ -141,6 +149,8 @@
       }
       function addParam() { paramsRows.value.push({ key: '', type: 'string', value: '' }); }
       function removeParam(i) { paramsRows.value.splice(i, 1); }
+      function addExtraParam() { extraRows.value.push({ key: '', type: 'string', value: '' }); }
+      function removeExtraParam(i) { extraRows.value.splice(i, 1); }
       function addMenu() { menuGroups.value.push({ name: '', entries: [] }); }
       function removeMenu(i) { menuGroups.value.splice(i, 1); }
       function addEntry(group) { group.entries.push({ name: '', page_ref: '', url: '', weight: 0, identifier: '', parent: '', pre: '', post: '' }); }
@@ -183,8 +193,8 @@
       }
       onMounted(load);
       return {
-        cfg, themes, loading, saving, error, form, paramsRows, menuGroups, themeOptions, typeOptions,
-        initVisible, initLoading, initForm, hugoInfo, initError, load, save, addParam, removeParam, addMenu, removeMenu,
+        cfg, themes, loading, saving, error, form, paramsRows, extraRows, menuGroups, themeOptions, typeOptions,
+        initVisible, initLoading, initForm, hugoInfo, initError, load, save, addParam, removeParam, addExtraParam, removeExtraParam, addMenu, removeMenu,
         addEntry, removeEntry, openInit, initSite, t
       };
     },
@@ -233,6 +243,21 @@
 
               <PCard class="panel-card">
                 <template #content>
+                  <div class="panel-head"><div><h2>{{ t('themes.extra_params', {}, 'Additional parameters') }}</h2><p>{{ t('themes.extra_params_hint', {}, 'Other top-level keys from the config file, such as theme- or Hugo-specific settings. Nested values use dotted keys.') }}</p></div><PButton text icon="pi pi-plus" :label="t('themes.add_param', {}, 'Add parameter')" @click="addExtraParam" /></div>
+                  <div v-if="extraRows.length === 0" class="empty-inline compact"><i class="pi pi-code"></i><span>{{ t('themes.no_extra_params', {}, 'No additional parameters.') }}</span></div>
+                  <div v-for="(row, i) in extraRows" :key="i" class="extra-row">
+                    <PInputText v-model="row.key" placeholder="key" class="mono-input" />
+                    <PSelect v-model="row.type" :options="typeOptions" optionLabel="label" optionValue="value" class="extra-type" />
+                    <PToggleSwitch v-if="row.type === 'boolean'" v-model="row.value" />
+                    <PTextarea v-else-if="row.type === 'json'" v-model="row.value" rows="2" autoResize class="mono-input" />
+                    <PInputText v-else v-model="row.value" placeholder="value" />
+                    <PButton text rounded severity="danger" icon="pi pi-times" @click="removeExtraParam(i)" />
+                  </div>
+                </template>
+              </PCard>
+
+              <PCard class="panel-card">
+                <template #content>
                   <div class="panel-head"><div><h2>{{ t('themes.menus', {}, 'Menus') }}</h2><p>{{ t('themes.menus_hint', {}, 'Navigation entries for your theme.') }}</p></div><PButton text icon="pi pi-plus" :label="t('themes.add_menu', {}, 'Add menu')" @click="addMenu" /></div>
                   <div v-if="menuGroups.length === 0" class="empty-inline compact"><i class="pi pi-bars"></i><span>{{ t('themes.no_menus', {}, 'No menus configured.') }}</span></div>
                   <div v-for="(group, gi) in menuGroups" :key="gi" class="menu-group">
@@ -259,6 +284,7 @@
                   <dl class="key-list">
                     <div><dt>{{ t('themes.config_format', {}, 'Format') }}</dt><dd>{{ (cfg.format || 'toml').toUpperCase() }}</dd></div>
                     <div><dt>{{ t('themes.config_path', {}, 'File') }}</dt><dd class="break-all">{{ cfg.config_path }}</dd></div>
+                    <div v-if="cfg.config_files && cfg.config_files.length > 1"><dt>{{ t('themes.config_files', {}, 'Files') }}</dt><dd class="break-all">{{ cfg.config_files.join(', ') }}</dd></div>
                   </dl>
                   <div class="action-stack">
                     <PButton class="w-full btn-primary" :label="t('common.save_changes', {}, 'Save changes')" icon="pi pi-check" :loading="saving" @click="save" />

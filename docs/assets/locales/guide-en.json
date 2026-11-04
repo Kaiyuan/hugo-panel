@@ -63,7 +63,7 @@
   "guide.usage.content.title": "Content",
   "guide.usage.content.body": "Create, edit, rename, search and delete Markdown pages or posts. YAML / TOML / JSON front matter, drafts, scheduled publishing, tags, categories and live preview are supported.",
   "guide.usage.theme.title": "Themes and modules",
-  "guide.usage.theme.body": "Enable local themes under themes/, or install, update and remove themes from Git. Install plugins as Hugo Modules and run hugo mod tidy.",
+  "guide.usage.theme.body": "Enable local themes under themes/, or install, update and remove themes from Git. Theme settings read split files from config/_default/ and list theme parameters from params.toml along with other non-standard top-level settings. Install plugins as Hugo Modules and run hugo mod tidy.",
   "guide.usage.media.title": "Media library",
   "guide.usage.media.body": "Browse local directories, S3-compatible storage and WebDAV. Upload, preview, move and copy files, and copy URLs or Markdown links in one click.",
   "guide.usage.build.title": "Builds",

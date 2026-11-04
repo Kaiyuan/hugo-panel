@@ -63,7 +63,7 @@
   "guide.usage.content.title": "内容管理",
   "guide.usage.content.body": "新建、编辑、重命名、搜索和删除 Markdown 页面或文章；支持 YAML / TOML / JSON front matter、草稿、定时发布、标签、分类和实时预览。",
   "guide.usage.theme.title": "主题与模块",
-  "guide.usage.theme.body": "从 themes/ 启用本地主题，或从 Git 安装、更新和移除主题；以 Hugo Modules 安装插件并执行 hugo mod tidy。",
+  "guide.usage.theme.body": "从 themes/ 启用本地主题，或从 Git 安装、更新和移除主题；主题设置会读取 config/_default/ 拆分配置，并列出 params.toml 中的主题参数及其它非常规顶层参数。以 Hugo Modules 安装插件并执行 hugo mod tidy。",
   "guide.usage.media.title": "媒体库",
   "guide.usage.media.body": "浏览本机目录、S3 兼容存储和 WebDAV；上传、预览、移动、复制文件，并一键复制 URL 或 Markdown 链接。",
   "guide.usage.build.title": "构建",
