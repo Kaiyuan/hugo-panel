@@ -253,9 +253,10 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request, sess store.Ses
 }
 
 type updateMeRequest struct {
-	Email    *string `json:"email"`
-	Language *string `json:"language"`
-	Theme    *string `json:"theme"`
+	Email        *string `json:"email"`
+	Language     *string `json:"language"`
+	Theme        *string `json:"theme"`
+	MediaLibrary *string `json:"media_library"`
 }
 
 func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request, sess store.Session) {
@@ -266,6 +267,7 @@ func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request, sess sto
 	email := sess.User.Email
 	language := sess.User.Language
 	theme := sess.User.Theme
+	mediaLibrary := sess.User.MediaLibrary
 	if req.Email != nil {
 		email = strings.ToLower(strings.TrimSpace(*req.Email))
 		if email != "" && !validEmail(email) {
@@ -287,10 +289,26 @@ func (s *Server) handleUpdateMe(w http.ResponseWriter, r *http.Request, sess sto
 			return
 		}
 	}
+	if req.MediaLibrary != nil {
+		mediaLibrary = strings.TrimSpace(*req.MediaLibrary)
+		if mediaLibrary != "" {
+			if _, err := s.media.Get(r.Context(), mediaLibrary); err != nil {
+				writeHugoError(w, err)
+				return
+			}
+		}
+	}
 	user, err := s.store.UpdateUserProfile(r.Context(), sess.User.ID, email, language, theme)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "server_error", "Could not update profile")
 		return
+	}
+	if req.MediaLibrary != nil {
+		user, err = s.store.UpdateUserMediaLibrary(r.Context(), sess.User.ID, mediaLibrary)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "server_error", "Could not update media library preference")
+			return
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"user": user})
 }

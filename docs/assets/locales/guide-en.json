@@ -65,7 +65,7 @@
   "guide.usage.theme.title": "Themes and modules",
   "guide.usage.theme.body": "Enable local themes under themes/, or install, update and remove themes from Git. Theme settings read split files from config/_default/ and list theme parameters from params.toml along with other non-standard top-level settings. Install plugins as Hugo Modules and run hugo mod tidy.",
   "guide.usage.media.title": "Media library",
-  "guide.usage.media.body": "Browse local directories, S3-compatible storage and WebDAV. Upload, preview, move and copy files, and copy URLs or Markdown links in one click.",
+  "guide.usage.media.body": "Browse local directories, S3-compatible storage and WebDAV. Upload, preview, move and copy files, and copy URLs or Markdown links in one click. The panel remembers each user's last selected library and uses it by default on the Media page and when inserting media into articles.",
   "guide.usage.build.title": "Builds",
   "guide.usage.build.body": "Run hugo --gc --minify --cleanDestinationDir and keep the latest output. Send an email notification when a build fails.",
   "guide.usage.deploy.title": "Automatic deployment",

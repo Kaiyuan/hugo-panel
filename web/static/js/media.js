@@ -62,6 +62,30 @@
 
   function humanError(e) { return HP.errorText(e); }
 
+  // The server stores the last library a user picked, with localStorage as a
+  // fast fallback for older accounts or transient API failures. Both the media
+  // page and the editor picker resolve their initial selection through this.
+  function preferredLibrary() {
+    const user = HP.state && HP.state.user;
+    if (user && user.media_library) return user.media_library;
+    try { return localStorage.getItem(LIBRARY_KEY) || 'local'; } catch (e) { return 'local'; }
+  }
+  function rememberLibrary(id) {
+    id = id || 'local';
+    try { localStorage.setItem(LIBRARY_KEY, id); } catch (e) { /* storage unavailable */ }
+    const user = HP.state && HP.state.user;
+    if (!user || user.media_library === id) return;
+    const previous = user.media_library || '';
+    user.media_library = id;
+    HP.api('/me', { method: 'PUT', body: { media_library: id } })
+      .then((res) => {
+        if (res && res.user && HP.state.user) HP.state.user = res.user;
+      })
+      .catch(() => {
+        if (HP.state.user) HP.state.user.media_library = previous;
+      });
+  }
+
 // Upload one or more files into a media library folder. Used by both the media
 // page and the picker in the content editor. Returns the number of files that
 // were uploaded successfully.
@@ -98,7 +122,7 @@ async function uploadMediaFiles(fileList, opts) {
       const libraries = ref([]);
       const allowedExtensions = ref([]);
       const defaultMaxUpload = ref(512);
-      const libraryId = ref(localStorage.getItem(LIBRARY_KEY) || 'local');
+      const libraryId = ref(preferredLibrary());
       const current = ref(null);
       const path = ref('');
       const entries = ref([]);
@@ -171,6 +195,7 @@ async function uploadMediaFiles(fileList, opts) {
           defaultMaxUpload.value = data.default_max_upload_mb || 512;
           if (!libraries.value.some((l) => l.id === libraryId.value)) {
             libraryId.value = data.default || 'local';
+            rememberLibrary(libraryId.value);
           }
         } catch (e) { error.value = humanError(e); }
       }
@@ -186,7 +211,7 @@ async function uploadMediaFiles(fileList, opts) {
           entries.value = data.entries || [];
           stats.value = data.stats || { files: 0, bytes: 0 };
           maxUploadMB.value = data.max_upload_mb || defaultMaxUpload.value;
-          try { localStorage.setItem(LIBRARY_KEY, libraryId.value); } catch (e) {}
+          rememberLibrary(libraryId.value);
         } catch (e) {
           error.value = humanError(e);
           entries.value = [];
@@ -669,7 +694,7 @@ async function uploadMediaFiles(fileList, opts) {
       const allowedExtensions = ref([]);
       const defaultMaxUpload = ref(512);
       const maxUploadMB = ref(512);
-      const libraryId = ref(localStorage.getItem(LIBRARY_KEY) || 'local');
+      const libraryId = ref(preferredLibrary());
       const path = ref('');
       const entries = ref([]);
       const loading = ref(false);
@@ -702,7 +727,10 @@ async function uploadMediaFiles(fileList, opts) {
           libraries.value = (data.libraries || []).map((library) => library.builtin ? Object.assign({}, library, { name: t('media.builtin_library', {}, 'Site images') }) : library);
           allowedExtensions.value = data.allowed_extensions || [];
           defaultMaxUpload.value = data.default_max_upload_mb || 512;
-          if (!libraries.value.some((l) => l.id === libraryId.value)) libraryId.value = 'local';
+          if (!libraries.value.some((l) => l.id === libraryId.value)) {
+            libraryId.value = data.default || 'local';
+            rememberLibrary(libraryId.value);
+          }
         } catch (e) { error.value = humanError(e); }
       }
       async function load() {
@@ -713,6 +741,7 @@ async function uploadMediaFiles(fileList, opts) {
           const data = await HP.api('/media?' + queryString({ library: libraryId.value, path: path.value }));
           entries.value = data.entries || [];
           maxUploadMB.value = data.max_upload_mb || defaultMaxUpload.value;
+          rememberLibrary(libraryId.value);
         } catch (e) { error.value = humanError(e); entries.value = []; }
         finally { loading.value = false; }
       }
@@ -746,7 +775,7 @@ async function uploadMediaFiles(fileList, opts) {
       function close() { emit('update:visible', false); }
       function openFolder(entry) { path.value = entry.path; load(); }
       function goCrumb(crumb) { path.value = crumb.path; load(); }
-      function selectLibrary(id) { libraryId.value = id; try { localStorage.setItem(LIBRARY_KEY, id); } catch (e) {} path.value = ''; load(); }
+      function selectLibrary(id) { libraryId.value = id; rememberLibrary(id); path.value = ''; load(); }
       function selectFile(entry) { selected.value = entry; }
       function choose(entry) {
         const file = entry || selected.value;

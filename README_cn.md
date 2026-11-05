@@ -270,7 +270,7 @@ ${DATA_DIR}/locales/pt-BR.json
 
 ## 媒体存储
 
-媒体页默认使用 Hugo 站点内的 `static/images`，也可以通过 **媒体 → 存储库设置** 添加更多存储库：
+媒体页默认使用 Hugo 站点内的 `static/images`。面板会记住每个用户上次选择的存储库，并在媒体页和编辑器插入媒体时默认使用它。也可以通过 **媒体 → 存储库设置** 添加更多存储库：
 
 - **本机目录**：服务器上的绝对路径。适合挂载 NFS、对象存储网关或已有素材目录。Docker 部署时镜像已预置 `/app/media`，把宿主目录挂载到该路径，再在存储库设置里把根目录填为 `/app/media` 即可。
 - **S3**：AWS S3、MinIO、Cloudflare R2、Backblaze B2 等兼容服务。支持自定义 endpoint、region、bucket、前缀和 path-style 访问。

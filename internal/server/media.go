@@ -90,6 +90,9 @@ func (s *Server) handleMediaLibraryDelete(w http.ResponseWriter, r *http.Request
 		writeHugoError(w, err)
 		return
 	}
+	if err := s.store.ClearUserMediaLibrary(r.Context(), id); err != nil {
+		s.logger.Warn("could not clear media library preference", "library", id, "error", err)
+	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 

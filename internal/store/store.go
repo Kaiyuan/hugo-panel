@@ -40,6 +40,7 @@ type User struct {
 	Email        string `json:"email"`
 	Language     string `json:"language"`
 	Theme        string `json:"theme"`
+	MediaLibrary string `json:"media_library"`
 	Role         string `json:"role"`
 	PasswordHash string `json:"-"`
 	CreatedAt    int64  `json:"created_at"`
@@ -101,6 +102,7 @@ func (s *Store) migrate(ctx context.Context) error {
 			email TEXT NOT NULL DEFAULT '',
 			language TEXT NOT NULL DEFAULT 'en',
 			theme TEXT NOT NULL DEFAULT 'system',
+			media_library TEXT NOT NULL DEFAULT '',
 			role TEXT NOT NULL DEFAULT 'admin',
 			created_at INTEGER NOT NULL,
 			updated_at INTEGER NOT NULL
@@ -131,7 +133,46 @@ func (s *Store) migrate(ctx context.Context) error {
 			return fmt.Errorf("migrate database: %w", err)
 		}
 	}
+	if err := s.ensureColumn(ctx, "users", "media_library", "TEXT NOT NULL DEFAULT ''"); err != nil {
+		return fmt.Errorf("migrate database: %w", err)
+	}
 	return nil
+}
+
+// ensureColumn adds a column to an existing table. CREATE TABLE IF NOT EXISTS
+// does not update databases created by older panel versions, so preference
+// columns need an explicit migration.
+func (s *Store) ensureColumn(ctx context.Context, table, column, definition string) error {
+	rows, err := s.db.QueryContext(ctx, "PRAGMA table_info("+table+")")
+	if err != nil {
+		return err
+	}
+	found := false
+	for rows.Next() {
+		var (
+			cid      int
+			name     string
+			dataType string
+			notNull  int
+			defaultV sql.NullString
+			primary  int
+		)
+		if err := rows.Scan(&cid, &name, &dataType, &notNull, &defaultV, &primary); err != nil {
+			rows.Close()
+			return err
+		}
+		if name == column {
+			found = true
+		}
+	}
+	if err := rows.Close(); err != nil {
+		return err
+	}
+	if found {
+		return nil
+	}
+	_, err = s.db.ExecContext(ctx, "ALTER TABLE "+table+" ADD COLUMN "+column+" "+definition)
+	return err
 }
 
 func (s *Store) cleanup(ctx context.Context) error {
@@ -188,14 +229,14 @@ func (s *Store) CreateAdmin(ctx context.Context, username, passwordHash, email, 
 
 func scanUser(row interface{ Scan(...any) error }) (User, error) {
 	var u User
-	err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Email, &u.Language, &u.Theme, &u.Role, &u.CreatedAt, &u.UpdatedAt)
+	err := row.Scan(&u.ID, &u.Username, &u.PasswordHash, &u.Email, &u.Language, &u.Theme, &u.MediaLibrary, &u.Role, &u.CreatedAt, &u.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
 	return u, err
 }
 
-const userCols = `id, username, password_hash, email, language, theme, role, created_at, updated_at`
+const userCols = `id, username, password_hash, email, language, theme, media_library, role, created_at, updated_at`
 
 func (s *Store) GetUserByID(ctx context.Context, id int64) (User, error) {
 	return scanUser(s.db.QueryRowContext(ctx, `SELECT `+userCols+` FROM users WHERE id = ?`, id))
@@ -234,6 +275,27 @@ func (s *Store) UpdateUserProfile(ctx context.Context, id int64, email, language
 		return User{}, err
 	}
 	return s.GetUserByID(ctx, id)
+}
+
+// UpdateUserMediaLibrary stores the media library the user picked last. New
+// articles and the media page use it as their default library.
+func (s *Store) UpdateUserMediaLibrary(ctx context.Context, id int64, library string) (User, error) {
+	_, err := s.db.ExecContext(ctx, `UPDATE users SET media_library = ?, updated_at = ? WHERE id = ?`,
+		library, time.Now().Unix(), id)
+	if err != nil {
+		return User{}, err
+	}
+	return s.GetUserByID(ctx, id)
+}
+
+// ClearUserMediaLibrary resets preferences that point at a deleted library.
+func (s *Store) ClearUserMediaLibrary(ctx context.Context, library string) error {
+	if library == "" {
+		return nil
+	}
+	_, err := s.db.ExecContext(ctx, `UPDATE users SET media_library = '', updated_at = ? WHERE media_library = ?`,
+		time.Now().Unix(), library)
+	return err
 }
 
 func (s *Store) UpdatePassword(ctx context.Context, id int64, hash string) error {
@@ -298,11 +360,11 @@ func (s *Store) GetSession(ctx context.Context, token string) (Session, error) {
 	var sess Session
 	var expires int64
 	err := s.db.QueryRowContext(ctx, `SELECT s.token_hash, s.user_id, s.csrf, s.expires_at,
-		u.id, u.username, u.password_hash, u.email, u.language, u.theme, u.role, u.created_at, u.updated_at
+		u.id, u.username, u.password_hash, u.email, u.language, u.theme, u.media_library, u.role, u.created_at, u.updated_at
 		FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?`, hash).Scan(
 		&sess.TokenHash, &sess.UserID, &sess.CSRF, &expires,
 		&sess.User.ID, &sess.User.Username, &sess.User.PasswordHash, &sess.User.Email,
-		&sess.User.Language, &sess.User.Theme, &sess.User.Role, &sess.User.CreatedAt, &sess.User.UpdatedAt)
+		&sess.User.Language, &sess.User.Theme, &sess.User.MediaLibrary, &sess.User.Role, &sess.User.CreatedAt, &sess.User.UpdatedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Session{}, ErrNotFound
 	}

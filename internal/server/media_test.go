@@ -225,3 +225,61 @@ func TestMediaUploadRejectsUnsupportedType(t *testing.T) {
 		t.Fatalf("expected unsupported type, got %d", res.StatusCode)
 	}
 }
+
+func TestUserMediaLibraryPreference(t *testing.T) {
+	app := newTestApp(t)
+	csrf := setupAdmin(t, app)
+
+	res, saved := app.request("POST", "/api/media/libraries", map[string]any{
+		"name": "Archive", "type": "local", "root": filepath.Join(t.TempDir(), "media"),
+	}, map[string]string{"X-CSRF-Token": csrf})
+	if res.StatusCode != 200 {
+		t.Fatalf("save library: %d %#v", res.StatusCode, saved)
+	}
+	view, _ := saved["library"].(map[string]any)
+	libID, _ := view["id"].(string)
+	if libID == "" {
+		t.Fatalf("saved library has no id: %#v", view)
+	}
+
+	res, me := app.request("PUT", "/api/me", map[string]any{"media_library": libID},
+		map[string]string{"X-CSRF-Token": csrf})
+	if res.StatusCode != 200 {
+		t.Fatalf("update preference: %d %#v", res.StatusCode, me)
+	}
+	user, _ := me["user"].(map[string]any)
+	if user["media_library"] != libID {
+		t.Fatalf("media_library = %#v, want %q", user["media_library"], libID)
+	}
+
+	// The preference persists across sessions and is part of /api/state.
+	res, state := app.request("GET", "/api/state", nil, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("state: %d", res.StatusCode)
+	}
+	stateUser, _ := state["user"].(map[string]any)
+	if stateUser["media_library"] != libID {
+		t.Fatalf("state media_library = %#v", stateUser["media_library"])
+	}
+
+	res, _ = app.request("PUT", "/api/me", map[string]any{"media_library": "missing"},
+		map[string]string{"X-CSRF-Token": csrf})
+	if res.StatusCode != http.StatusNotFound {
+		t.Fatalf("unknown library status = %d, want 404", res.StatusCode)
+	}
+
+	// Deleting the selected library clears the stored preference.
+	res, _ = app.request("DELETE", "/api/media/libraries?id="+libID, nil,
+		map[string]string{"X-CSRF-Token": csrf})
+	if res.StatusCode != 200 {
+		t.Fatalf("delete library: %d", res.StatusCode)
+	}
+	res, me = app.request("GET", "/api/me", nil, nil)
+	if res.StatusCode != 200 {
+		t.Fatalf("me: %d", res.StatusCode)
+	}
+	user, _ = me["user"].(map[string]any)
+	if user["media_library"] != "" {
+		t.Fatalf("preference after delete = %#v, want empty", user["media_library"])
+	}
+}

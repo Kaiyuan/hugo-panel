@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"path/filepath"
 	"testing"
@@ -41,6 +42,10 @@ func TestUsersSessionsAndSettings(t *testing.T) {
 	updated, err := st.UpdateUserProfile(ctx, user.ID, "new@example.com", "zh-CN", "dark")
 	if err != nil || updated.Language != "zh-CN" || updated.Theme != "dark" {
 		t.Fatalf("profile: %#v err=%v", updated, err)
+	}
+	pref, err := st.UpdateUserMediaLibrary(ctx, user.ID, "archive")
+	if err != nil || pref.MediaLibrary != "archive" {
+		t.Fatalf("media library preference: %#v err=%v", pref, err)
 	}
 	if err := st.UpdatePassword(ctx, user.ID, "newhash"); err != nil {
 		t.Fatal(err)
@@ -107,5 +112,66 @@ func TestPasswordResetSingleUse(t *testing.T) {
 	}
 	if _, err := st.ConsumePasswordReset(ctx, token3); err != nil {
 		t.Fatalf("newest reset token failed: %v", err)
+	}
+}
+
+func TestMediaLibraryColumnMigration(t *testing.T) {
+	ctx := context.Background()
+	path := filepath.Join(t.TempDir(), "panel.db")
+
+	// Simulate a database created before the media_library preference existed.
+	db, err := sql.Open("sqlite3", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `CREATE TABLE users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+		password_hash TEXT NOT NULL,
+		email TEXT NOT NULL DEFAULT '',
+		language TEXT NOT NULL DEFAULT 'en',
+		theme TEXT NOT NULL DEFAULT 'system',
+		role TEXT NOT NULL DEFAULT 'admin',
+		created_at INTEGER NOT NULL,
+		updated_at INTEGER NOT NULL
+	)`); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now().Unix()
+	if _, err := db.ExecContext(ctx, `INSERT INTO users
+		(username, password_hash, email, language, theme, role, created_at, updated_at)
+		VALUES ('legacy', 'hash', '', 'en', 'system', 'admin', ?, ?)`, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	st, err := Open(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+
+	user, err := st.GetUserByUsername(ctx, "legacy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if user.MediaLibrary != "" {
+		t.Fatalf("migrated preference = %q, want empty", user.MediaLibrary)
+	}
+	if _, err := st.UpdateUserMediaLibrary(ctx, user.ID, "archive"); err != nil {
+		t.Fatal(err)
+	}
+	user, err = st.GetUserByUsername(ctx, "legacy")
+	if err != nil || user.MediaLibrary != "archive" {
+		t.Fatalf("preference after update: %#v err=%v", user, err)
+	}
+	if err := st.ClearUserMediaLibrary(ctx, "archive"); err != nil {
+		t.Fatal(err)
+	}
+	user, err = st.GetUserByUsername(ctx, "legacy")
+	if err != nil || user.MediaLibrary != "" {
+		t.Fatalf("preference after clear: %#v err=%v", user, err)
 	}
 }

@@ -270,7 +270,7 @@ You can also upload a JSON file under **Settings → Language → Add translatio
 
 ## Media storage
 
-The Media page uses `static/images` inside the Hugo site by default. Add more libraries under **Media → Library settings**:
+The Media page uses `static/images` inside the Hugo site by default. The panel remembers the library each user selected last and uses it as the default on the Media page and in the editor's media picker. Add more libraries under **Media → Library settings**:
 
 - **Local directory**: An absolute path on the server, suitable for NFS mounts, object-storage gateways or existing asset folders. The Docker image pre-creates `/app/media`; mount a host directory there, then set the library root to `/app/media`.
 - **S3**: AWS S3, MinIO, Cloudflare R2, Backblaze B2 and compatible services. Custom endpoint, region, bucket, prefix and path-style access are supported.
