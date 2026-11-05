@@ -253,6 +253,7 @@
   -p 55530:55530 \
   -v /srv/hugo-panel/data:/app/hugo-panel/data \
   -v /srv/my-hugo-site:/app/hugo \
+  -v /srv/media:/app/media \
   -e PUBLIC_URL=https://panel.example.com \
   -e TZ=Asia/Shanghai \
   kaiyuan/hugo-panel:latest</code></pre>
@@ -279,7 +280,8 @@
       PUBLIC_URL: http://localhost:55530
     volumes:
       - "./data:/app/hugo-panel/data"
-      - "./hugo:/app/hugo"</code></pre>
+      - "./hugo:/app/hugo"
+      - "./media:/app/media"</code></pre>
             <div class="code-head code-head-sub">
               <span>start</span>
               <button class="copy-btn" type="button" data-copy="snippet-docker-compose-run" data-i18n="start.copy">复制</button>
@@ -287,7 +289,7 @@
 <pre id="snippet-docker-compose-run"><code>docker compose up -d
 docker compose logs -f hugo-panel</code></pre>
           </div>
-          <p data-i18n-html="guide.docker.note">容器默认以 UID/GID <code>1000</code> 运行，并在启动时调整挂载目录权限。由外部工具管理权限时，可设置 <code>CHOWN_DATA=false</code> 和 <code>CHOWN_HUGO=false</code>。</p>
+          <p data-i18n-html="guide.docker.note">容器默认以 UID/GID <code>1000</code> 运行，并在启动时调整挂载目录权限。<code>/app/media</code> 是预置的本地媒体库挂载点，在媒体 → 存储库设置中添加「本机目录」并填入该路径即可。由外部工具管理权限时，可设置 <code>CHOWN_DATA=false</code>、<code>CHOWN_HUGO=false</code> 和 <code>CHOWN_MEDIA=false</code>。</p>
         </section>
 
         <section class="guide-section" id="first-run">
@@ -362,6 +364,7 @@ docker compose logs -f hugo-panel</code></pre>
               <tr><td><code>PORT</code></td><td><code>55530</code></td><td data-i18n="guide.settings.env.port">监听端口</td></tr>
               <tr><td><code>DATA_DIR</code></td><td><code>./data</code></td><td data-i18n="guide.settings.env.data">数据目录，存放 SQLite、备份和缓存</td></tr>
               <tr><td><code>HUGO_DIR</code></td><td><code>./hugo</code></td><td data-i18n="guide.settings.env.hugo">Hugo 站点目录</td></tr>
+              <tr><td><code>MEDIA_DIR</code></td><td><code>./media</code></td><td data-i18n="guide.settings.env.media">本地媒体库目录，可在存储库设置中加为本机目录</td></tr>
               <tr><td><code>HUGO_BINARY</code></td><td><code>hugo</code></td><td data-i18n="guide.settings.env.binary">Hugo 可执行文件路径</td></tr>
               <tr><td><code>PUBLIC_URL</code></td><td data-i18n="guide.settings.empty">空</td><td data-i18n="guide.settings.env.public">面板外部地址，用于密码重置和绝对链接</td></tr>
               <tr><td><code>COOKIE_SECURE</code></td><td><code>auto</code></td><td data-i18n="guide.settings.env.cookie">HTTPS 反代建议保持 auto</td></tr>

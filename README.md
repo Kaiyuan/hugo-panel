@@ -82,6 +82,7 @@ docker run -d \
   -p 55530:55530 \
   -v /srv/hugo-panel/data:/app/hugo-panel/data \
   -v /srv/my-hugo-site:/app/hugo \
+  -v /srv/media:/app/media \
   -e PUBLIC_URL=https://panel.example.com \
   -e TZ=Asia/Shanghai \
   kaiyuan/hugo-panel:latest
@@ -111,6 +112,7 @@ services:
     volumes:
       - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
       - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
+      - "${HOST_MEDIA_DIR:-./media}:/app/media"
 ```
 
 挂载目录可通过同目录下的 `.env` 配置，未设置时使用默认相对路径：
@@ -118,6 +120,7 @@ services:
 ```dotenv
 HOST_DATA_DIR=./data
 HOST_HUGO_DIR=./hugo
+HOST_MEDIA_DIR=./media
 ```
 
 启动并查看日志：
@@ -148,6 +151,7 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 | `/app/hugo-panel` | 面板工作目录 |
 | `/app/hugo-panel/data` | SQLite 数据库、备份、自定义翻译、Hugo/Go 缓存（建议持久化） |
 | `/app/hugo` | Hugo 站点目录（默认值，可在设置页修改） |
+| `/app/media` | 本地媒体库挂载点（可在媒体 → 存储库设置中添加为「本机目录」） |
 | `/app/hugo/content` | 内容目录 |
 | `/app/hugo/themes` | 本地主题 |
 | `/app/hugo/static/images` | 内置媒体库（可在媒体页切换或新增存储库） |
@@ -156,7 +160,7 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 容器默认以 UID/GID `1000` 运行，并在启动时把挂载目录 chown 给该用户。若由外部工具管理权限：
 
 ```bash
--e CHOWN_HUGO=false -e CHOWN_DATA=false
+-e CHOWN_HUGO=false -e CHOWN_DATA=false -e CHOWN_MEDIA=false
 ```
 
 ### 环境变量
@@ -166,6 +170,7 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 | `PORT` | `55530` | 监听端口 |
 | `DATA_DIR` | `./data`（镜像内 `/app/hugo-panel/data`） | 数据目录 |
 | `HUGO_DIR` | `./hugo`（镜像内 `/app/hugo`） | 首次启动写入设置的 Hugo 站点目录 |
+| `MEDIA_DIR` | `./media`（镜像内 `/app/media`） | 本地媒体库挂载点，启动时自动创建并调整权限 |
 | `HUGO_BINARY` | `hugo` | 首次启动写入设置的 Hugo 可执行文件 |
 | `PUBLIC_URL` | 空 | 面板公网地址，用于密码重置链接；设置后环境变量优先 |
 | `COOKIE_SECURE` | `auto` | `auto` / `true` / `false`，HTTPS 反代建议保持 auto |
@@ -181,6 +186,7 @@ SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首
 | `SMTP_SECURITY` | `starttls` | `starttls` / `tls` / `none` |
 | `CHOWN_DATA` | `true` | 启动时 chown 数据目录 |
 | `CHOWN_HUGO` | `true` | 启动时 chown Hugo 目录 |
+| `CHOWN_MEDIA` | `true` | 启动时 chown 媒体目录；媒体文件很多且权限已正确时可设为 `false` 加快启动 |
 
 通过环境变量设置的 SMTP 值会优先于数据库设置，面板中会显示 `ENV` 标记并锁定对应字段。
 
@@ -264,7 +270,7 @@ ${DATA_DIR}/locales/pt-BR.json
 
 媒体页默认使用 Hugo 站点内的 `static/images`，也可以通过 **媒体 → 存储库设置** 添加更多存储库：
 
-- **本机目录**：服务器上的绝对路径。适合挂载 NFS、对象存储网关或已有素材目录。
+- **本机目录**：服务器上的绝对路径。适合挂载 NFS、对象存储网关或已有素材目录。Docker 部署时镜像已预置 `/app/media`，把宿主目录挂载到该路径，再在存储库设置里把根目录填为 `/app/media` 即可。
 - **S3**：AWS S3、MinIO、Cloudflare R2、Backblaze B2 等兼容服务。支持自定义 endpoint、region、bucket、前缀和 path-style 访问。
 - **WebDAV**：Nextcloud、ownCloud、群晖等 WebDAV 服务，使用 Basic Auth。
 

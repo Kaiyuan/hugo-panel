@@ -55,7 +55,7 @@ RUN set -eux; \
     hugo version; \
     groupadd --gid 1000 hugo; \
     useradd --uid 1000 --gid 1000 --home-dir /app --create-home --shell /usr/sbin/nologin hugo; \
-    mkdir -p /app/hugo-panel/data /app/hugo; \
+    mkdir -p /app/hugo-panel/data /app/hugo /app/media; \
     chown -R hugo:hugo /app
 
 WORKDIR /app/hugo-panel
@@ -66,6 +66,7 @@ RUN chmod 0755 /usr/local/bin/entrypoint.sh
 ENV PORT=55530 \
     DATA_DIR=/app/hugo-panel/data \
     HUGO_DIR=/app/hugo \
+    MEDIA_DIR=/app/media \
     HUGO_BINARY=/usr/local/bin/hugo \
     HOME=/app \
     GOMODCACHE=/app/hugo-panel/data/go-mod-cache \
@@ -73,7 +74,7 @@ ENV PORT=55530 \
     HUGO_CACHEDIR=/app/hugo-panel/data/hugo-cache \
     COOKIE_SECURE=auto
 
-VOLUME ["/app/hugo-panel/data", "/app/hugo"]
+VOLUME ["/app/hugo-panel/data", "/app/hugo", "/app/media"]
 EXPOSE 55530
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

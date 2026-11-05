@@ -33,12 +33,14 @@ services:
       PUBLIC_URL: http://localhost:55530
       # Set to "true" when running behind an HTTPS reverse proxy.
       # COOKIE_SECURE: "auto"
-      # The app chowns mounted Hugo files to UID 1000. Disable if you manage
-      # permissions yourself.
+      # The app chowns mounted Hugo and media files to UID 1000. Disable if
+      # you manage permissions yourself.
       # CHOWN_HUGO: "true"
+      # CHOWN_MEDIA: "true"
       # SMTP is optional and does not affect the build. Configure it in
       # Settings after first boot, or add SMTP_* variables here if needed.
     volumes:
       # Host paths are configured in .env (defaults keep them next to this file).
       - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
       - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
+      - "${HOST_MEDIA_DIR:-./media}:/app/media"

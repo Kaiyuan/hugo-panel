@@ -301,6 +301,7 @@
   -p 55530:55530 \
   -v /srv/hugo-panel/data:/app/hugo-panel/data \
   -v /srv/my-hugo-site:/app/hugo \
+  -v /srv/media:/app/media \
   -e PUBLIC_URL=https://panel.example.com \
   -e TZ=Asia/Shanghai \
   kaiyuan/hugo-panel:latest</code></pre>
@@ -334,7 +335,8 @@
         volumes:
             # Host paths are configured in .env (defaults keep them next to this file).
             - "${HOST_DATA_DIR:-./data}:/app/hugo-panel/data"
-            - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"</code></pre>
+            - "${HOST_HUGO_DIR:-./hugo}:/app/hugo"
+            - "${HOST_MEDIA_DIR:-./media}:/app/media"</code></pre>
             <div class="code-head code-head-sub">
               <span>start</span>
               <button class="copy-btn" type="button" data-copy="snippet-compose-run" data-i18n="start.copy">复制</button>
