@@ -1,78 +1,80 @@
 # Hugo Panel
 
+English | [简体中文](./README_cn.md)
+
 ![hugo panel](https://kaiyuan.github.io/hugo-panel/assets/images/hugo-panel-web.png)
-一个用 Go 编写的 Hugo 站点管理后台。内容、主题、模块、媒体和构建都在一个界面里完成，不需要手写配置文件。前端使用 Vue 3 + PrimeVue，以静态资源形式由 Go 直接提供。
+An admin panel for Hugo sites written in Go. Manage content, themes, modules, media and builds in one interface without hand-editing config files. The frontend uses Vue 3 + PrimeVue and is served directly by Go as static assets.
 
 ![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-embedded-003B57?logo=sqlite&logoColor=white)
 ![PrimeVue](https://img.shields.io/badge/PrimeVue-4-10b981)
 ![Docker](https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED?logo=docker&logoColor=white)
 
-## 预览
+## Preview
 
-| 桌面端 | 移动端 |
+| Desktop | Mobile |
 | --- | --- |
-| ![Hugo Panel 桌面端仪表盘](./docs/assets/images/hugo-panel-desktop.png) | ![Hugo Panel 桌面端仪表盘](./docs/assets/images/hugo-panel-phone.png)|
+| ![Hugo Panel desktop dashboard](./docs/assets/images/hugo-panel-desktop.png) | ![Hugo Panel mobile dashboard](./docs/assets/images/hugo-panel-phone.png)|
 
-介绍页（纯静态，由 GitHub Pages 托管）：<https://kaiyuan.github.io/hugo-panel/>
+Landing page (static, hosted on GitHub Pages): <https://kaiyuan.github.io/hugo-panel/>
 
-完整安装与使用文档：<https://kaiyuan.github.io/hugo-panel/guide.html>
+Full installation and usage guide: <https://kaiyuan.github.io/hugo-panel/guide.html>
 
-## 功能
+## Features
 
-- **首次启动向导**：创建管理员账户，密码使用 bcrypt 存储。
-- **内容管理**：Markdown 页面/文章的新建、编辑、重命名、删除、搜索、筛选和分页；YAML / TOML / JSON front matter；标签、分类、草稿、定时发布和自定义字段；Markdown 实时预览。编辑器支持格式工具栏、Markdown 语法高亮、媒体插入和从媒体库选择封面；文件路径通过 `content/` 子目录选择并可直接在下拉菜单中新建文件夹（支持 `posts/2026` 这样的多级目录），文件名可一键翻译为英文，URL 为空时自动按目录和文件名生成。
-- **标题翻译**：编辑器的「英文」按钮可把文章标题翻译成英文文件名，支持 LibreTranslate、DeepL 和兼容 OpenAI 的 AI 服务；密钥只保存在服务端。未配置或请求失败时按本地规则生成，纯中文标题会回退为基于日期的文件名。
-- **AI 写作助手**：在 **设置 → AI** 中接入任意兼容 OpenAI 的 chat completions 服务（OpenAI、DeepSeek、Moonshot、通义千问、SiliconFlow、OpenRouter、Ollama、LM Studio 等），编辑器工具栏的 AI 按钮可润色、续写、生成摘要或执行自定义指令，结果可预览后再应用。未配置专用翻译服务时，AI 也会用于生成英文文件名。文章内容会发送到所配置的服务商。
-- **主题管理**：列出 `themes/` 下的主题，启用主题，从 Git 安装、更新、移除主题；可视化编辑站点配置、主题参数和菜单。兼容 `config/_default/` 拆分配置，并会把 `params.toml` 等文件中的主题自定义参数以及其它非常规顶层参数一并列出。面板会自动检查 Hugo 最新版本，初始化对话框、设置页和仪表盘会在版本落后时提示升级，避免与官网最新主题不兼容。
-- **插件管理**：以 Hugo Modules 方式安装/移除插件，执行 `hugo mod tidy`，并显示命令输出与工具链状态。
-- **媒体库**：支持本机目录、S3（含 MinIO 等兼容服务）和 WebDAV 存储库；按文件夹浏览、上传、预览、复制 URL / Markdown、移动、复制和删除。可预览图片、视频、音频、PDF 与文本，其他文档可直接下载；编辑器内可打开媒体选择器插入 URL 或 Markdown。
-- **构建**：在面板中运行 `hugo --gc --minify --cleanDestinationDir`，保留最后一次构建结果；构建失败时可邮件通知管理员。
-- **自动部署**：构建成功后可通过 rsync over SSH 把 `public/` 同步到远程服务器；支持自定义端口、SSH 私钥、known_hosts 主机密钥校验、远程目录与 `--delete`。私钥和 known_hosts 只保存在服务端，API 不会返回。
-- **SMTP**：首次启动后可在设置页配置，也可通过 Docker 环境变量注入；支持密码重置邮件和测试邮件。
-- **多语言**：内置简体中文、繁体中文、英语、法语、意大利语、西班牙语、日语、韩语、德语。每种语言是独立 JSON 文件，按需加载；支持上传自定义翻译，无需重新构建。
-- **亮色 / 暗色主题**：暗色主题使用纯黑 `#000` 背景，适合 OLED 屏幕；默认跟随系统。
-- **PWA**：可安装到桌面/手机，包含离线应用壳与移动端适配。除 `localhost` 外，安装与 Service Worker 需要 HTTPS。
-- **安全**：SQLite 持久化、HttpOnly 会话、CSRF 防护、登录/找回密码限流、同源校验、CSP、安全响应头、路径穿越防护、配置自动备份。
+- **First-run setup wizard**: Create the administrator account; passwords are stored with bcrypt.
+- **Content management**: Create, edit, rename, delete, search, filter and paginate Markdown pages and posts; YAML / TOML / JSON front matter; tags, categories, drafts, scheduled publishing and custom fields; live Markdown preview. The editor includes a formatting toolbar, Markdown syntax highlighting, media insertion and cover selection from the media library; file paths are chosen from `content/` subdirectories and new folders can be created directly in the dropdown (including nested paths such as `posts/2026`). Titles can be translated into English filenames with one click, and empty URLs are generated from the directory and filename.
+- **Title translation**: The editor's “English” button turns a post title into an English filename using LibreTranslate, DeepL or an OpenAI-compatible AI service. Keys are stored only on the server. When no service is configured or a request fails, a local rule-based name is generated; titles written entirely in Chinese fall back to a date-based filename.
+- **AI writing assistant**: Connect any OpenAI-compatible chat completions service under **Settings → AI** (OpenAI, DeepSeek, Moonshot, Qwen, SiliconFlow, OpenRouter, Ollama, LM Studio, and others). The editor's AI button can polish, continue, summarize or run custom instructions, with a preview before applying the result. When no dedicated translation service is configured, the AI is also used to generate English filenames. Post content is sent to the configured provider.
+- **Theme management**: List themes under `themes/`, activate a theme, and install, update or remove themes from Git; edit site configuration, theme parameters and menus visually. Split configuration under `config/_default/` is supported, and custom theme parameters from files such as `params.toml` are listed together with other non-standard top-level settings. The panel also checks for the latest Hugo version and warns from the setup dialog, settings page and dashboard when the installed version is behind, helping avoid incompatibilities with current themes.
+- **Plugin management**: Install and remove plugins as Hugo Modules, run `hugo mod tidy`, and inspect command output and toolchain status.
+- **Media library**: Local directories, S3-compatible storage (including MinIO) and WebDAV libraries; browse by folder, upload, preview, copy URLs / Markdown, move, copy and delete files. Images, video, audio, PDFs and text can be previewed, while other documents can be downloaded. The editor can open a media picker to insert a URL or Markdown link.
+- **Builds**: Run `hugo --gc --minify --cleanDestinationDir` from the panel and keep the last build result. Administrators can be notified by email when a build fails.
+- **Automatic deployment**: After a successful build, sync `public/` to a remote server over rsync and SSH, with support for custom ports, SSH private keys, known_hosts host-key verification, a remote directory and `--delete`. Private keys and known_hosts are stored only on the server and are never returned by the API.
+- **SMTP**: Configure email in Settings after first launch, or inject it through Docker environment variables. Supports password-reset and test emails.
+- **Multilingual**: Built-in Simplified Chinese, Traditional Chinese, English, French, Italian, Spanish, Japanese, Korean and German. Each language is a separate JSON file loaded on demand, and custom translations can be uploaded without rebuilding.
+- **Light / dark theme**: The dark theme uses a pure black `#000` background, which suits OLED screens; it follows the system theme by default.
+- **PWA**: Installable on desktop and mobile, with an offline app shell and mobile layout. Outside `localhost`, installation and the service worker require HTTPS.
+- **Security**: SQLite persistence, HttpOnly sessions, CSRF protection, login/password-reset rate limiting, same-origin checks, CSP, security headers, path traversal protection and automatic configuration backups.
 
-## 单文件安装（Linux / macOS）
+## Standalone installation (Linux / macOS)
 
-每个 `v*` 标签都会发布 Linux 与 macOS 的 amd64 / arm64 压缩包。安装脚本会自动识别系统架构，下载对应版本并校验 SHA-256：
+Every `v*` tag publishes Linux and macOS archives for amd64 and arm64. The installer detects the platform, downloads the matching release and verifies its SHA-256 checksum:
 
 ```bash
 curl -fsSL https://github.com/Kaiyuan/hugo-panel/releases/latest/download/install.sh | sh
 ```
 
-默认安装到 `~/.local/bin`，使用 root 运行时安装到 `/usr/local/bin`。可通过环境变量指定版本或安装目录：
+The default install directory is `~/.local/bin`, or `/usr/local/bin` when run as root. Use environment variables to pin a version or choose another directory:
 
 ```bash
 curl -fsSL https://github.com/Kaiyuan/hugo-panel/releases/latest/download/install.sh \
-  | HP_VERSION=v0.0.6 HP_INSTALL_DIR="$HOME/bin" sh
+  | HP_VERSION=v0.0.7 HP_INSTALL_DIR="$HOME/bin" sh
 ```
 
-也可以从 [Releases](https://github.com/Kaiyuan/hugo-panel/releases) 手动下载：
+You can also download an archive manually from [Releases](https://github.com/Kaiyuan/hugo-panel/releases):
 
-| 系统 | 架构 | 文件 |
+| System | Architecture | File |
 | --- | --- | --- |
 | Linux | amd64 | `hugo-panel_linux_amd64.tar.gz` |
 | Linux | arm64 | `hugo-panel_linux_arm64.tar.gz` |
-| macOS | amd64（Intel） | `hugo-panel_darwin_amd64.tar.gz` |
-| macOS | arm64（Apple Silicon） | `hugo-panel_darwin_arm64.tar.gz` |
+| macOS | amd64 (Intel) | `hugo-panel_darwin_amd64.tar.gz` |
+| macOS | arm64 (Apple Silicon) | `hugo-panel_darwin_arm64.tar.gz` |
 
-运行前请安装 [Hugo Extended](https://gohugo.io/installation/) 0.120 或更高版本，并确认 `hugo version` 可用。然后启动面板：
+Install [Hugo Extended](https://gohugo.io/installation/) 0.120 or later and make sure `hugo version` works before starting the panel:
 
 ```bash
 hugo-panel
-# 打开 http://localhost:55530
+# Open http://localhost:55530
 ```
 
-面板默认监听 `55530`，数据保存在当前目录的 `./data`，Hugo 站点目录默认为 `./hugo`。可通过 `PORT`、`DATA_DIR` 和 `HUGO_DIR` 修改。
+The panel listens on `55530` by default, stores data in `./data` under the current directory and uses `./hugo` as the default Hugo site directory. Change these with `PORT`, `DATA_DIR` and `HUGO_DIR`.
 
-## Docker 部署（推荐）
+## Docker deployment (recommended)
 
-镜像地址：`https://hub.docker.com/r/kaiyuan/hugo-panel`
+Image: `https://hub.docker.com/r/kaiyuan/hugo-panel`
 
-镜像内置的 Hugo 在构建时自动取上游最新版本，无需随 Hugo 发版修改项目文件；如需固定版本，构建时传入 `--build-arg HUGO_VERSION=0.169.0`。面板运行后仍会定期检查上游版本并提示升级。
+The Hugo binary bundled in the image is resolved from the latest upstream release at build time, so the project does not need a version bump for every Hugo release. To pin a version, pass `--build-arg HUGO_VERSION=0.169.0` when building. The running panel still checks upstream periodically and prompts for upgrades.
 
 ```bash
 docker run -d \
@@ -88,13 +90,13 @@ docker run -d \
   kaiyuan/hugo-panel:latest
 ```
 
-然后打开 `http://服务器地址:55530`，按向导创建管理员。
+Then open `http://your-server:55530` and follow the wizard to create the administrator account.
 
 ### Docker Compose
 
-#### 使用已发布的镜像（推荐）
+#### Using the published image (recommended)
 
-创建 `docker-compose.yml`：
+Create `docker-compose.yml`:
 
 ```yaml
 services:
@@ -115,7 +117,7 @@ services:
       - "${HOST_MEDIA_DIR:-./media}:/app/media"
 ```
 
-挂载目录可通过同目录下的 `.env` 配置，未设置时使用默认相对路径：
+Mount paths can be configured in a `.env` file next to the compose file; when unset, the relative defaults are used:
 
 ```dotenv
 HOST_DATA_DIR=./data
@@ -123,16 +125,16 @@ HOST_HUGO_DIR=./hugo
 HOST_MEDIA_DIR=./media
 ```
 
-启动并查看日志：
+Start the panel and follow the logs:
 
 ```bash
 docker compose up -d
 docker compose logs -f hugo-panel
 ```
 
-#### 从源码构建
+#### Building from source
 
-仓库内的 [`docker-compose.yml`](./docker-compose.yml) 使用本地源码构建镜像，不依赖远程镜像：
+The repository's [`docker-compose.yml`](./docker-compose.yml) builds the image from local source instead of pulling a remote image:
 
 ```bash
 git clone https://github.com/Kaiyuan/hugo-panel.git
@@ -140,88 +142,88 @@ cd hugo-panel
 docker compose up -d --build
 ```
 
-然后打开 `http://服务器地址:55530`，按向导创建管理员。
+Then open `http://your-server:55530` and follow the wizard to create the administrator account.
 
-SMTP 环境变量是可选的，不配置也能正常构建和启动；可在首次启动后到设置页配置。
+SMTP environment variables are optional: the image builds and starts without them, and email can be configured in Settings after first launch.
 
-### 目录约定
+### Directory layout
 
-| 路径 | 用途 |
+| Path | Purpose |
 | --- | --- |
-| `/app/hugo-panel` | 面板工作目录 |
-| `/app/hugo-panel/data` | SQLite 数据库、备份、自定义翻译、Hugo/Go 缓存（建议持久化） |
-| `/app/hugo` | Hugo 站点目录（默认值，可在设置页修改） |
-| `/app/media` | 本地媒体库挂载点（可在媒体 → 存储库设置中添加为「本机目录」） |
-| `/app/hugo/content` | 内容目录 |
-| `/app/hugo/themes` | 本地主题 |
-| `/app/hugo/static/images` | 内置媒体库（可在媒体页切换或新增存储库） |
-| `/app/hugo/public` | 构建输出 |
+| `/app/hugo-panel` | Panel working directory |
+| `/app/hugo-panel/data` | SQLite database, backups, custom translations and Hugo/Go caches (persist this directory) |
+| `/app/hugo` | Hugo site directory (default; can be changed in Settings) |
+| `/app/media` | Local media library mount point (add it as a “Local directory” library under Media → Library settings) |
+| `/app/hugo/content` | Content directory |
+| `/app/hugo/themes` | Local themes |
+| `/app/hugo/static/images` | Built-in media library (can be switched or supplemented from the Media page) |
+| `/app/hugo/public` | Build output |
 
-容器默认以 UID/GID `1000` 运行，并在启动时把挂载目录 chown 给该用户。若由外部工具管理权限：
+The container runs as UID/GID `1000` by default and chowns mounted directories to that user at startup. If permissions are managed by an external tool:
 
 ```bash
 -e CHOWN_HUGO=false -e CHOWN_DATA=false -e CHOWN_MEDIA=false
 ```
 
-### 环境变量
+### Environment variables
 
-| 变量 | 默认值 | 说明 |
+| Variable | Default | Description |
 | --- | --- | --- |
-| `PORT` | `55530` | 监听端口 |
-| `DATA_DIR` | `./data`（镜像内 `/app/hugo-panel/data`） | 数据目录 |
-| `HUGO_DIR` | `./hugo`（镜像内 `/app/hugo`） | 首次启动写入设置的 Hugo 站点目录 |
-| `MEDIA_DIR` | `./media`（镜像内 `/app/media`） | 本地媒体库挂载点，启动时自动创建并调整权限 |
-| `HUGO_BINARY` | `hugo` | 首次启动写入设置的 Hugo 可执行文件 |
-| `PUBLIC_URL` | 空 | 面板公网地址，用于密码重置链接；设置后环境变量优先 |
-| `COOKIE_SECURE` | `auto` | `auto` / `true` / `false`，HTTPS 反代建议保持 auto |
+| `PORT` | `55530` | Listen port |
+| `DATA_DIR` | `./data` (`/app/hugo-panel/data` in the image) | Data directory |
+| `HUGO_DIR` | `./hugo` (`/app/hugo` in the image) | Hugo site directory stored in settings on first launch |
+| `MEDIA_DIR` | `./media` (`/app/media` in the image) | Local media mount point, created and permission-adjusted at startup |
+| `HUGO_BINARY` | `hugo` | Hugo executable stored in settings on first launch |
+| `PUBLIC_URL` | empty | Public panel URL used for password-reset links; environment values take precedence |
+| `COOKIE_SECURE` | `auto` | `auto` / `true` / `false`; keep `auto` behind an HTTPS reverse proxy |
 | `LOG_LEVEL` | `info` | `debug` / `info` / `warn` / `error` |
-| `PANEL_LATEST_URL` | GitHub Releases 页面 | 侧栏版本检查地址，默认读取 `Kaiyuan/hugo-panel` 的最新发布；留空关闭更新检查 |
-| `SMTP_ENABLED` | 空 | `true` 开启 SMTP |
-| `SMTP_HOST` | 空 | SMTP 主机 |
-| `SMTP_PORT` | `587` | SMTP 端口 |
-| `SMTP_USERNAME` | 空 | SMTP 用户名 |
-| `SMTP_PASSWORD` | 空 | SMTP 密码 |
-| `SMTP_FROM` | 空 | 发件地址 |
-| `SMTP_FROM_NAME` | `Hugo Panel` | 发件人名称 |
+| `PANEL_LATEST_URL` | GitHub Releases page | Sidebar update-check URL; defaults to the latest `Kaiyuan/hugo-panel` release, empty disables the check |
+| `SMTP_ENABLED` | empty | Set to `true` to enable SMTP |
+| `SMTP_HOST` | empty | SMTP host |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_USERNAME` | empty | SMTP username |
+| `SMTP_PASSWORD` | empty | SMTP password |
+| `SMTP_FROM` | empty | From address |
+| `SMTP_FROM_NAME` | `Hugo Panel` | From name |
 | `SMTP_SECURITY` | `starttls` | `starttls` / `tls` / `none` |
-| `CHOWN_DATA` | `true` | 启动时 chown 数据目录 |
-| `CHOWN_HUGO` | `true` | 启动时 chown Hugo 目录 |
-| `CHOWN_MEDIA` | `true` | 启动时 chown 媒体目录；媒体文件很多且权限已正确时可设为 `false` 加快启动 |
+| `CHOWN_DATA` | `true` | Chown the data directory at startup |
+| `CHOWN_HUGO` | `true` | Chown the Hugo directory at startup |
+| `CHOWN_MEDIA` | `true` | Chown the media directory at startup; set to `false` for faster starts when the library is large and permissions are already correct |
 
-通过环境变量设置的 SMTP 值会优先于数据库设置，面板中会显示 `ENV` 标记并锁定对应字段。
+SMTP values supplied through environment variables take precedence over database settings. The panel marks those fields with an `ENV` badge and locks them.
 
-## Rsync 自动部署
+## Rsync automatic deployment
 
-在 **设置 → 部署** 中启用后，每次 Hugo 构建成功都会自动运行 rsync，把静态文件同步到远端服务器。也可以在设置页或构建页点击「立即部署」手动触发。
+Enable it under **Settings → Deployment** to run rsync automatically after every successful Hugo build and sync static files to a remote server. You can also trigger a deployment manually from Settings or the Build page.
 
-必填项：
+Required fields:
 
-| 字段 | 说明 |
+| Field | Description |
 | --- | --- |
-| 远程主机 | 例如 `example.com`，不要带 `ssh://` 或用户名 |
-| SSH 端口 | 默认 `22` |
-| SSH 用户 | 用于登录远端服务器的用户 |
-| 远程目录 | 远端绝对路径，例如 `/var/www/example.com/` |
-| 本地源目录 | 相对于 Hugo 站点目录，默认 `public` |
+| Remote host | For example `example.com`; do not include `ssh://` or a username |
+| SSH port | Defaults to `22` |
+| SSH user | User used to sign in to the remote server |
+| Remote directory | Absolute remote path, for example `/var/www/example.com/` |
+| Local source directory | Relative to the Hugo site directory; defaults to `public` |
 
-SSH 安全设置：
+SSH security settings:
 
-- **SSH 私钥**：粘贴部署用户的私钥内容（OpenSSH 或 PEM 格式）。私钥保存在 SQLite 中，接口只返回 `ssh_key_set`，不会返回内容。留空时使用容器内默认的 SSH 身份。
-- **known_hosts**：开启「验证服务器主机密钥」时必填。可在本机运行以下命令并把输出粘贴进去：
+- **SSH private key**: Paste the deployment user's private key (OpenSSH or PEM format). The key is stored in SQLite; the API only returns `ssh_key_set`, never the key itself. Leave it empty to use the container's default SSH identity.
+- **known_hosts**: Required when “Verify server host key” is enabled. Run the following command locally and paste the output:
 
   ```bash
   ssh-keyscan -p 22 example.com
   ```
 
-  非标准端口时 known_hosts 中的主机格式为 `[example.com]:2222`，`ssh-keyscan -p 2222 example.com` 的输出已符合该格式。
-- **验证服务器主机密钥**：默认开启。关闭后使用 `StrictHostKeyChecking=accept-new`，首次连接会信任未知主机密钥，不建议在生产环境关闭。
-- **远程 rsync 路径**：可选，例如 `/usr/bin/rsync`，用于远端 PATH 中没有 rsync 的情况。
+  For non-standard ports, known_hosts entries use the form `[example.com]:2222`; output from `ssh-keyscan -p 2222 example.com` already matches this format.
+- **Verify server host key**: Enabled by default. When disabled, `StrictHostKeyChecking=accept-new` is used, so the first connection trusts an unknown host key. Do not disable this in production.
+- **Remote rsync path**: Optional, for example `/usr/bin/rsync`, for cases where rsync is not on the remote PATH.
 
-Docker 运行时镜像已包含 `rsync` 和 `openssh-client`。部署用户需要对远端目录有写权限，并且能够通过密钥登录。面板本身不保存 SSH 密码，只支持密钥认证。
+The Docker runtime image includes `rsync` and `openssh-client`. The deployment user needs write access to the remote directory and must be able to sign in with a key. The panel does not store SSH passwords and only supports key authentication.
 
-## 开发
+## Development
 
-需要 Go 1.24+、GCC（SQLite 驱动使用 CGO）以及 Hugo（extended 版推荐，面板会在有新版本时提示升级）。未安装 Hugo 也可以启动面板，但初始化后的构建会失败。无需 Node.js。
+Requirements: Go 1.24+, GCC (the SQLite driver uses CGO) and Hugo (extended recommended; the panel prompts when a newer version is available). The panel can start without Hugo, but builds will fail once the site is initialized. Node.js is not required.
 
 ```bash
 git clone https://github.com/Kaiyuan/hugo-panel.git
@@ -234,26 +236,26 @@ CGO_ENABLED=1 \
   go run ./cmd/hugo-panel
 ```
 
-或：
+Or:
 
 ```bash
-make run      # 本地运行
-make test     # Go 测试
+make run      # run locally
+make test     # Go tests
 make vet      # go vet
-make build    # 输出 bin/hugo-panel
+make build    # write bin/hugo-panel
 ```
 
-前端文件位于 `web/static`，Vue/PrimeVue 等依赖已经以本地静态资源形式内置在 `web/static/vendor`，不经过打包器。
+Frontend files live in `web/static`. Vue/PrimeVue and other dependencies are bundled as local static assets in `web/static/vendor` and do not go through a bundler.
 
-## 自定义翻译
+## Custom translations
 
-内置翻译位于 `web/locales/*.json`。运行时自定义翻译放在数据目录：
+Built-in translations live in `web/locales/*.json`. Runtime custom translations go in the data directory:
 
 ```text
 ${DATA_DIR}/locales/pt-BR.json
 ```
 
-文件是扁平的 `key: value` JSON，可参考 `en.json` 模板：
+The file is flat `key: value` JSON; use `en.json` as a template:
 
 ```json
 {
@@ -264,41 +266,41 @@ ${DATA_DIR}/locales/pt-BR.json
 }
 ```
 
-也可以在 **设置 → 语言 → 添加翻译** 中上传 JSON 文件。缺失的键会自动回退到英文；新增语言无需重新编译或重启。
+You can also upload a JSON file under **Settings → Language → Add translation**. Missing keys fall back to English automatically, and new languages do not require a rebuild or restart.
 
-## 媒体存储
+## Media storage
 
-媒体页默认使用 Hugo 站点内的 `static/images`，也可以通过 **媒体 → 存储库设置** 添加更多存储库：
+The Media page uses `static/images` inside the Hugo site by default. Add more libraries under **Media → Library settings**:
 
-- **本机目录**：服务器上的绝对路径。适合挂载 NFS、对象存储网关或已有素材目录。Docker 部署时镜像已预置 `/app/media`，把宿主目录挂载到该路径，再在存储库设置里把根目录填为 `/app/media` 即可。
-- **S3**：AWS S3、MinIO、Cloudflare R2、Backblaze B2 等兼容服务。支持自定义 endpoint、region、bucket、前缀和 path-style 访问。
-- **WebDAV**：Nextcloud、ownCloud、群晖等 WebDAV 服务，使用 Basic Auth。
+- **Local directory**: An absolute path on the server, suitable for NFS mounts, object-storage gateways or existing asset folders. The Docker image pre-creates `/app/media`; mount a host directory there, then set the library root to `/app/media`.
+- **S3**: AWS S3, MinIO, Cloudflare R2, Backblaze B2 and compatible services. Custom endpoint, region, bucket, prefix and path-style access are supported.
+- **WebDAV**: Nextcloud, ownCloud, Synology and other WebDAV services using Basic Auth.
 
-文件 URL 由 **公开访问基础 URL + 文件夹路径** 生成。例如基础 URL 为 `https://cdn.example.com/media`，文件位于 `posts/2026/photo.jpg`，复制出的 URL 就是 `https://cdn.example.com/media/posts/2026/photo.jpg`。留空时使用存储端点本身，或对内置库使用站点的 `/images/...` 路径。
+File URLs are built from the **public base URL + folder path**. For example, with a base URL of `https://cdn.example.com/media` and a file at `posts/2026/photo.jpg`, the copied URL is `https://cdn.example.com/media/posts/2026/photo.jpg`. When empty, the storage endpoint itself is used, or the site's `/images/...` path for the built-in library.
 
-上传大小上限按存储库单独设置（默认 512 MB）。反向代理（如 Nginx `client_max_body_size`）和存储服务商可能施加更低的限制。S3 密钥和 WebDAV 密码只保存在 SQLite 中，接口不会回传明文；编辑时留空表示保留原值。若 NAS 或自建服务使用自签名证书，可在该存储库中开启「允许自签名证书」；保存前可以点「测试连接」验证 URL、账号和证书。
+Upload size limits are configured per library (512 MB by default). Reverse proxies (such as Nginx `client_max_body_size`) and storage providers may impose lower limits. S3 keys and WebDAV passwords are stored only in SQLite; the API never returns them in plaintext. Leaving a secret empty while editing keeps the existing value. If a NAS or self-hosted service uses a self-signed certificate, enable “Allow self-signed certificate” for that library. Use “Test connection” before saving to verify the URL, credentials and certificate.
 
-所有存储库都提供统一的文件操作：新建文件夹、上传、预览、复制 URL / Markdown、移动、复制和删除。移动 / 复制可以在不同存储库之间进行；跨库操作会先下载到数据目录的临时文件再上传。
+All libraries share the same file operations: create folders, upload, preview, copy URL / Markdown, move, copy and delete. Moves and copies can cross libraries; cross-library operations download to a temporary file in the data directory and then upload it.
 
-### 容器内解析不到 NAS 主机名
+### NAS hostname cannot be resolved inside the container
 
-如果「测试连接」返回类似 `lookup nas.example.com on 127.0.0.11:53: i/o timeout`，说明 Docker 内置 DNS 没能解析该主机名，而不是账号或 WebDAV 配置错误。
+If “Test connection” returns an error such as `lookup nas.example.com on 127.0.0.11:53: i/o timeout`, Docker's built-in DNS could not resolve the hostname; this is not an account or WebDAV configuration error.
 
-先在宿主机确认主机名对应的 IP：
+First confirm the host's IP on the Docker host:
 
 ```bash
 getent hosts nas.example.com
 ```
 
-最省事的方式是在存储库设置里填写 **主机 IP**：面板会直接连接这个 IP，不再做 DNS 查询，但 HTTPS 证书校验和 `Host` 头仍然使用原来的主机名。这适用于 Docker 内置 DNS 超时、或域名只有宿主机能解析的情况。
+The simplest fix is to enter the **host IP** in the library settings. The panel connects to that IP directly without a DNS lookup, while HTTPS certificate validation and the `Host` header still use the original hostname. This helps when Docker's built-in DNS times out or the hostname is only resolvable from the Docker host.
 
-如果已经在 compose 里配置了 `dns:`（例如 `1.1.1.1`）仍然超时，说明容器到这些 DNS 的出站 53 端口被阻断；删掉 `dns:` 让 Docker 使用宿主机的解析器，或改成实际能解析该域名的内网 DNS。
+If `dns:` is already configured in Compose (for example `1.1.1.1`) and lookups still time out, outbound port 53 from the container is probably blocked. Remove `dns:` so Docker uses the host resolver, or point it at an internal DNS server that can actually resolve the name.
 
-如果容器完全无法访问任何 53 端口（换成 `1.1.1.1`、`8.8.8.8` 也超时），可以在存储库设置里填写 **DNS over HTTPS**，例如 `https://1.1.1.1/dns-query`。面板会通过 443 端口解析存储服务器的主机名，再连接解析出的 IP，同时保留原 `Host` 头和 TLS SNI。请尽量使用基于 IP 的 DoH 地址，避免解析 DoH 服务器本身又依赖已经失效的 DNS；该地址必须能从容器直接访问。如果 `1.1.1.1` 不可达，可以换成其他可访问的 DoH 服务，例如阿里 DNS 的 `https://223.5.5.5/dns-query`。「主机 IP」和 DoH 同时填写时以「主机 IP」为准。
+If the container cannot reach any DNS server on port 53 (even `1.1.1.1` or `8.8.8.8` times out), enter a **DNS over HTTPS** URL in the library settings, for example `https://1.1.1.1/dns-query`. The panel resolves the storage hostname over port 443 and then connects to the resolved IP while preserving the original `Host` header and TLS SNI. Prefer IP-based DoH endpoints so resolving the DoH server itself does not depend on the broken DNS. The endpoint must be directly reachable from the container. If `1.1.1.1` is unreachable, use another reachable DoH service, such as Alibaba DNS at `https://223.5.5.5/dns-query`. When both **host IP** and DoH are set, the host IP wins.
 
-即使不填写 DoH 地址，普通 DNS 失败后面板也会自动尝试公共 DoH 服务（Cloudflare、阿里 DNS、Google），所以通常不需要额外配置。自动回退只针对看起来是公网的域名；单段主机名（如 Docker 服务名）和 `.local`、`.lan`、`.internal` 等私有后缀仍交给系统 DNS。如果不想把域名发送给公共解析服务，可以给该存储库填写自己的 DoH 地址，或在容器环境变量中设置 `MEDIA_DOH_URL=off` 关闭自动回退；也可以用逗号分隔的地址列表覆盖默认服务（需要在 `docker-compose.yml` 的 `environment` 中透传该变量）。
+Even without a DoH URL, the panel automatically tries public DoH services (Cloudflare, Alibaba DNS, Google) after ordinary DNS fails, so extra configuration is usually unnecessary. Automatic fallback only applies to hostnames that look public; single-label names (such as Docker service names) and private suffixes such as `.local`, `.lan` and `.internal` still use system DNS. To avoid sending hostnames to public resolvers, configure a DoH URL per library, or set `MEDIA_DOH_URL=off` in the container environment to disable fallback. You can also override the default services with a comma-separated list (pass the variable through `environment` in `docker-compose.yml`).
 
-也可以在 Docker 层解决。`docker-compose.yml`：
+You can also solve this at the Docker layer. In `docker-compose.yml`:
 
 ```yaml
 services:
@@ -307,7 +309,7 @@ services:
       - "nas.example.com:192.168.2.10"
 ```
 
-或者让容器使用能解析该域名的 DNS（路由器、AdGuard、内网 DNS 等）：
+Or point the container at a DNS server that can resolve the name (router, AdGuard, internal DNS, and so on):
 
 ```yaml
 services:
@@ -316,63 +318,65 @@ services:
       - 192.168.2.1
 ```
 
-`docker run` 对应参数是 `--add-host nas.example.com:192.168.2.10` 和 `--dns 192.168.2.1`。修改后执行 `docker compose up -d`，并在容器内验证：
+The equivalent `docker run` flags are `--add-host nas.example.com:192.168.2.10` and `--dns 192.168.2.1`. After changing the configuration, run `docker compose up -d` and verify inside the container:
 
 ```bash
 docker exec -it hugo-panel getent hosts nas.example.com
 ```
 
-如果域名本身解析正常，但 WebDAV 使用自签名 HTTPS 证书，还需要在存储库设置里打开「允许自签名证书」。
+If the hostname resolves correctly but WebDAV uses a self-signed HTTPS certificate, also enable “Allow self-signed certificate” in the library settings.
 
-<!-- ## 发布
+<!-- ## Release
 
-推送形如 `v1.2.3` 的 tag（或在 GitHub 上发布 Release，它会创建对应的 tag）会触发 [`.github/workflows/release.yml`](./.github/workflows/release.yml)，构建 `linux/amd64` 与 `linux/arm64` 镜像并推送到 Docker Hub：
+Pushing a tag such as `v1.2.3` (or publishing a GitHub Release, which creates the tag) triggers [`.github/workflows/release.yml`](./.github/workflows/release.yml), builds `linux/amd64` and `linux/arm64` images and pushes them to Docker Hub:
 
 - `kaiyuan/hugo-panel:1.2.3`
 - `kaiyuan/hugo-panel:1.2`
 - `kaiyuan/hugo-panel:latest`
 
-需要在仓库 Secrets 中配置：
+Configure these repository secrets:
 
 - `DOCKERHUB_USERNAME`
 - `DOCKERHUB_TOKEN`
 
-CI（`ci.yml`）只在 push/PR 时运行 `go vet`、`go test -race` 和二进制构建，不构建任何 Docker 镜像；镜像只由 tag 触发。 -->
+CI (`ci.yml`) only runs `go vet`, `go test -race` and a binary build on push/PR; it does not build Docker images. Images are built only on tags. -->
 
-## 架构
+## Architecture
 
 ```text
-cmd/hugo-panel          Go 入口、HTTP 服务、优雅退出
-internal/config         环境变量配置
-internal/store          SQLite、用户、会话、设置、密码重置
-internal/settings       设置与环境变量覆盖
-internal/hugo           内容、front matter、配置、主题、模块、构建
-internal/deploy         rsync over SSH 部署、SSH 密钥与 known_hosts 处理
-internal/media          媒体存储库（本机目录、S3、WebDAV）与文件操作
-internal/mailer         SMTP、密码重置/构建失败邮件
-internal/translate      标题翻译（LibreTranslate / DeepL）
-internal/ai             兼容 OpenAI 的 chat completions 客户端
-internal/i18n           语言发现、按需加载、自定义翻译
-internal/server         路由、鉴权、CSRF、安全头、API
-web/static              Vue 3 + PrimeVue 单页应用、PWA、内置依赖
-web/locales             9 种内置语言
+cmd/hugo-panel          Go entry point, HTTP server, graceful shutdown
+internal/config         Environment configuration
+internal/store          SQLite, users, sessions, settings, password resets
+internal/settings       Settings and environment overrides
+internal/hugo           Content, front matter, config, themes, modules, builds
+internal/deploy         rsync over SSH deployment, SSH keys and known_hosts
+internal/media          Media libraries (local, S3, WebDAV) and file operations
+internal/mailer         SMTP, password-reset and build-failure email
+internal/translate      Title translation (LibreTranslate / DeepL)
+internal/ai             OpenAI-compatible chat completions client
+internal/i18n           Language discovery, on-demand loading, custom translations
+internal/server         Routing, authentication, CSRF, security headers, API
+web/static              Vue 3 + PrimeVue SPA, PWA and bundled dependencies
+web/locales             Nine built-in languages
 ```
 
-数据库为单文件 SQLite（WAL 模式），配置/内容写入采用临时文件 + 原子重命名，修改前会备份到 `data/backups/`。
+The database is a single SQLite file (WAL mode). Configuration and content writes use a temporary file plus atomic rename, with a backup written to `data/backups/` before each change.
 
-## 安全建议
+## Security recommendations
 
-- 生产环境使用 HTTPS 反向代理，并务必设置 `PUBLIC_URL`。未设置时，密码重置链接会从当前请求推断地址。
-- 不要把数据目录或 Hugo 站点目录暴露为静态文件目录。
-- 使用强密码；面板默认只允许创建第一个管理员，之后通过密码重置流程恢复访问。
-- 若不需要 Hugo Modules，可自行移除运行时镜像中的 Go 包以减小体积。
+- Use an HTTPS reverse proxy in production and always set `PUBLIC_URL`. When unset, password-reset links infer the address from the current request.
+- Do not expose the data directory or the Hugo site directory as a static file directory.
+- Use strong passwords. The panel only allows creating the first administrator; later access can be recovered through the password-reset flow.
+- If Hugo Modules are not needed, you can remove Go packages from the runtime image to reduce its size.
 
 ## License
 
 [MIT](./LICENSE)
 
-前端第三方静态依赖及其许可证见 [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md)。
+Third-party frontend static dependencies and their licenses are listed in [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md).
 
-|给我补充 token||
+## Sponsor
+
+|Support the project||
 |------|------|
-|![WeiChat](https://kaiyuan.github.io/sponsor-page/simple/images/WeChanSQ.png)|![AliPay](https://kaiyuan.github.io/sponsor-page/simple/images/AliPayQR.png)|
+|![WeChat](https://kaiyuan.github.io/sponsor-page/simple/images/WeChanSQ.png)|![AliPay](https://kaiyuan.github.io/sponsor-page/simple/images/AliPayQR.png)|

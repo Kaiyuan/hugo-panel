@@ -2,7 +2,7 @@
 
 FROM golang:1.24-trixie AS build
 
-ARG VERSION=0.0.6
+ARG VERSION=0.0.7
 ARG COMMIT=none
 ARG BUILD_TIME=unknown
 ARG GOPROXY=https://goproxy.cn,direct

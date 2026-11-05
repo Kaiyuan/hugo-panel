@@ -5,7 +5,7 @@
 #   curl -fsSL https://github.com/Kaiyuan/hugo-panel/releases/latest/download/install.sh | sh
 #
 # Optional environment variables:
-#   HP_VERSION       Release tag to install, for example v0.0.6. Default: latest.
+#   HP_VERSION       Release tag to install, for example v0.0.7. Default: latest.
 #   HP_INSTALL_DIR   Directory for the hugo-panel binary. Default: ~/.local/bin,
 #                    or /usr/local/bin when run as root.
 #   HP_REPO          GitHub repository, default: Kaiyuan/hugo-panel.
